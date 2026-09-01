@@ -17,8 +17,8 @@ class Prompt2JudgePipelineTest {
     @BeforeEach void setup() {
         codec=new FunctionValueCodec(); code=new CodeExecutionService();
         ReflectionTestUtils.setField(code,"javacCommand","javac"); ReflectionTestUtils.setField(code,"javaCommand","java");
-        ReflectionTestUtils.setField(code,"gxxCommand","C:\\msys64\\ucrt64\\bin\\g++.exe"); ReflectionTestUtils.setField(code,"pythonCommand","python");
-        ReflectionTestUtils.setField(code,"runtimePath","C:\\msys64\\ucrt64\\bin;C:\\msys64\\usr\\bin");
+        ReflectionTestUtils.setField(code,"gxxCommand",windows()?"C:\\msys64\\ucrt64\\bin\\g++.exe":"g++"); ReflectionTestUtils.setField(code,"pythonCommand",windows()?"python":"python3");
+        ReflectionTestUtils.setField(code,"runtimePath",windows()?"C:\\msys64\\ucrt64\\bin;C:\\msys64\\usr\\bin":"");
         functions=new FunctionExecutionService(codec,code,List.of(new JavaSolutionWrapperGenerator(codec),new CppSolutionWrapperGenerator(codec),new PythonSolutionWrapperGenerator(codec)));
         problem=problem(); official=List.of(test("hello",false),test("Verdixa",false),test("",true),test("x",true),test("aaaa",true),test("boundary value",true));
     }
@@ -86,4 +86,5 @@ class Prompt2JudgePipelineTest {
     private RunCodeRequest.CustomRunCase customFixed(String input,String expected){try{var mapper=new com.fasterxml.jackson.databind.ObjectMapper();RunCodeRequest.CustomRunCase c=new RunCodeRequest.CustomRunCase();c.setArguments(mapper.readTree("["+quote(input)+"]"));if(expected!=null)c.setExpected(mapper.readTree(quote(expected)));return c;}catch(Exception e){throw new RuntimeException(e);}}
     private String quote(String s){try{return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(s);}catch(Exception e){throw new RuntimeException(e);}}
     private String source(String l){return switch(l){case "java"->"public String reverseString(String s) { return new StringBuilder(s).reverse().toString(); }";case "cpp"->"string reverseString(string s) { reverse(s.begin(), s.end()); return s; }";default->"def reverse_string(s):\n    return s[::-1]";};}
+    private boolean windows(){return System.getProperty("os.name").toLowerCase().contains("win");}
 }

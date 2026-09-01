@@ -16,9 +16,9 @@ class FunctionExecutionServiceTest {
         codeExecutionService = new CodeExecutionService();
         ReflectionTestUtils.setField(codeExecutionService, "javacCommand", "javac");
         ReflectionTestUtils.setField(codeExecutionService, "javaCommand", "java");
-        ReflectionTestUtils.setField(codeExecutionService, "gxxCommand", "C:\\msys64\\ucrt64\\bin\\g++.exe");
-        ReflectionTestUtils.setField(codeExecutionService, "pythonCommand", "python");
-        ReflectionTestUtils.setField(codeExecutionService, "runtimePath", "C:\\msys64\\ucrt64\\bin;C:\\msys64\\usr\\bin");
+        ReflectionTestUtils.setField(codeExecutionService, "gxxCommand", windows() ? "C:\\msys64\\ucrt64\\bin\\g++.exe" : "g++");
+        ReflectionTestUtils.setField(codeExecutionService, "pythonCommand", windows() ? "python" : "python3");
+        ReflectionTestUtils.setField(codeExecutionService, "runtimePath", windows() ? "C:\\msys64\\ucrt64\\bin;C:\\msys64\\usr\\bin" : "");
         service = new FunctionExecutionService(codec, codeExecutionService, List.of(
                 new JavaSolutionWrapperGenerator(codec), new CppSolutionWrapperGenerator(codec), new PythonSolutionWrapperGenerator(codec)));
     }
@@ -56,4 +56,6 @@ class FunctionExecutionServiceTest {
     private void assertExecuted(FunctionExecutionResult result) {
         assertEquals("EXECUTED", result.status(), result.errorMessage()); assertTrue(result.passed()); assertEquals("\"olleh\"", result.normalizedOutput());
     }
+
+    private boolean windows() { return System.getProperty("os.name").toLowerCase().contains("win"); }
 }
