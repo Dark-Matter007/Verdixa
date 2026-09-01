@@ -47,3 +47,6 @@ temp/
 *.tmp
 *.bak
 *.swp
+
+# Private local notes / credentials
+private/
