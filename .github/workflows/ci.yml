@@ -17,7 +17,23 @@ jobs:
     defaults: { run: { working-directory: backend } }
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with: { distribution: temurin, java-version: '21', cache: maven }
-      - run: mvn -B -Dalgosphere.jwt.secret=ci-test-secret-that-is-at-least-32-characters clean test
+      - name: Install judge runtimes
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++ python3
+          javac -version
+          java -version
+          g++ --version
+          python3 --version
+      - name: Run backend tests
+        env:
+          ALGOSPHERE_JAVAC_COMMAND: javac
+          ALGOSPHERE_JAVA_COMMAND: java
+          ALGOSPHERE_CPP_COMMAND: g++
+          ALGOSPHERE_PYTHON_COMMAND: python3
+          ALGOSPHERE_RUNTIME_PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+          ALGOSPHERE_JWT_SECRET: ci-test-secret-that-is-at-least-32-characters
+        run: mvn -B clean test
       - run: mvn -B -DskipTests package
