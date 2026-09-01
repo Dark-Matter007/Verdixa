@@ -1,0 +1,12 @@
+{
+  "title": "Two Sum - Updated",
+  "description": "Find two different numbers in an array that add up to a target.",
+  "difficulty": "EASY",
+  "constraints": "Array length between 2 and 10000",
+  "inputFormat": "An integer array nums and integer target",
+  "outputFormat": "Return the indices of the two numbers",
+  "examples": "nums = [2,7,11,15], target = 9",
+  "tags": "array,hashmap",
+  "starterCode": "public int[] twoSum(int[] nums, int target) {}",
+  "active": true
+}

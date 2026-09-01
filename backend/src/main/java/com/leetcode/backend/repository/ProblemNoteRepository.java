@@ -1,0 +1,1 @@
+package com.leetcode.backend.repository; import com.leetcode.backend.model.ProblemNote; import org.springframework.data.jpa.repository.JpaRepository; import java.util.Optional; public interface ProblemNoteRepository extends JpaRepository<ProblemNote,Long>{Optional<ProblemNote> findByUserIdAndProblemId(Long userId,Long problemId);}

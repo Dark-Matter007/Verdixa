@@ -1,0 +1,1 @@
+package com.leetcode.backend.repository;import com.leetcode.backend.model.LearningPathSection;import org.springframework.data.jpa.repository.JpaRepository;public interface LearningPathSectionRepository extends JpaRepository<LearningPathSection,Long>{}

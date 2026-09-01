@@ -1,0 +1,33 @@
+package com.leetcode.backend.controller;
+
+import com.leetcode.backend.model.*;
+import com.leetcode.backend.repository.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+import java.util.*;
+import java.util.stream.*;
+
+/** User-safe, combined library query. It derives status/stats from persisted submissions only. */
+@RestController @RequestMapping("/api/problems")
+public class ProblemLibraryController {
+ final ProblemRepository problems; final SubmissionRepository submissions; final UserRepository users; final ProblemBookmarkRepository bookmarks;
+ ProblemLibraryController(ProblemRepository p,SubmissionRepository s,UserRepository u,ProblemBookmarkRepository b){problems=p;submissions=s;users=u;bookmarks=b;}
+ @GetMapping("/library") public Map<String,Object> library(@RequestParam(defaultValue="")String search,@RequestParam(defaultValue="ALL")String difficulty,@RequestParam(defaultValue="ALL")String topic,@RequestParam(defaultValue="ALL")String status,@RequestParam(defaultValue="false")boolean bookmarked,@RequestParam(defaultValue="title")String sort,@RequestParam(defaultValue="0")int page,@RequestParam(defaultValue="20")int size,Authentication a){User user=users.findByUsername(a.getName()).orElseThrow();List<Submission> mine=submissions.findByUserIdOrderBySubmittedAtDesc(user.getId());Set<Long> attempted=mine.stream().map(s->s.getProblem().getId()).collect(Collectors.toSet());Set<Long> solved=mine.stream().filter(s->"ACCEPTED".equals(s.getStatus())).map(s->s.getProblem().getId()).collect(Collectors.toSet());Set<Long> saved=bookmarks.findByUserIdOrderByCreatedAtDesc(user.getId()).stream().map(b->b.getProblem().getId()).collect(Collectors.toSet());Stream<Problem> stream=problems.findByActiveTrue().stream().filter(p->matches(p,search,difficulty,topic,status,bookmarked,attempted,solved,saved));Comparator<Problem> cmp=comparator(sort);List<Map<String,Object>> all=stream.sorted(cmp).map(p->view(p,attempted,solved,saved)).toList();return page(all,page,size);}
+ @GetMapping("/{id}/stats") public Map<String,Object> stats(@PathVariable Long id,Authentication a){Problem p=problems.findById(id).orElseThrow();if(!p.isActive()&&!admin(a))throw new RuntimeException("Problem not found");return statistics(p);}
+ @GetMapping("/{id}/navigation") public Map<String,Object> navigation(@PathVariable Long id,Authentication a){List<Problem> all=problems.findByActiveTrue().stream().sorted(Comparator.comparing(Problem::getTitle,String.CASE_INSENSITIVE_ORDER).thenComparing(Problem::getId)).toList();int i=IntStream.range(0,all.size()).filter(n->all.get(n).getId().equals(id)).findFirst().orElseThrow(()->new RuntimeException("Problem not found"));Map<String,Object> r=new LinkedHashMap<>();r.put("previous",i>0?mini(all.get(i-1)):null);r.put("next",i+1<all.size()?mini(all.get(i+1)):null);return r;}
+ private boolean matches(Problem p,String q,String d,String t,String st,boolean marked,Set<Long>a,Set<Long>s,Set<Long>b){String hay=(p.getTitle()+" "+p.getDescription()+" "+Optional.ofNullable(p.getTags()).orElse("")).toLowerCase();if(!hay.contains(q.toLowerCase())||!"ALL".equalsIgnoreCase(d)&&!d.equalsIgnoreCase(p.getDifficulty())||!"ALL".equalsIgnoreCase(t)&&Arrays.stream(Optional.ofNullable(p.getTags()).orElse("").split(",")).map(String::trim).noneMatch(x->x.equalsIgnoreCase(t))||marked&&!b.contains(p.getId()))return false;String actual=s.contains(p.getId())?"SOLVED":a.contains(p.getId())?"ATTEMPTED":"UNATTEMPTED";return "ALL".equalsIgnoreCase(st)||actual.equalsIgnoreCase(st);}
+ private Comparator<Problem> comparator(String sort){if("difficulty".equalsIgnoreCase(sort))return Comparator.comparingInt(p->Map.of("EASY",1,"MEDIUM",2,"HARD",3).getOrDefault(p.getDifficulty().toUpperCase(),4));if("acceptanceRate".equalsIgnoreCase(sort))return Comparator.comparingLong((Problem p)->rate(p)).reversed().thenComparing(Problem::getTitle,String.CASE_INSENSITIVE_ORDER);return Comparator.comparing(Problem::getTitle,String.CASE_INSENSITIVE_ORDER).thenComparing(Problem::getId);}
+ private Map<String,Object> view(Problem p,Set<Long>a,Set<Long>s,Set<Long>b){Map<String,Object> r=new LinkedHashMap<>();r.put("problem",libraryProblem(p));r.put("status",s.contains(p.getId())?"SOLVED":a.contains(p.getId())?"ATTEMPTED":"UNATTEMPTED");r.put("bookmarked",b.contains(p.getId()));r.put("statistics",statistics(p));return r;}
+ /**
+  * The library is a summary endpoint.  Returning the managed Problem entity
+  * made Jackson traverse its FUNCTION signature and lazy parameter collection
+  * after the repository session had closed, turning one legacy signature into
+  * a 500 for the entire library.  Keep this payload intentionally flat; the
+  * solver endpoint remains responsible for loading full problem configuration.
+  */
+ private Map<String,Object> libraryProblem(Problem p){Map<String,Object> r=new LinkedHashMap<>();r.put("id",p.getId());r.put("title",p.getTitle());r.put("description",p.getDescription());r.put("difficulty",p.getDifficulty());r.put("constraints",p.getConstraints());r.put("inputFormat",p.getInputFormat());r.put("outputFormat",p.getOutputFormat());r.put("examples",p.getExamples());r.put("tags",p.getTags());r.put("executionMode",p.getExecutionMode());r.put("active",p.isActive());return r;}
+ private Map<String,Object> mini(Problem p){return Map.of("id",p.getId(),"title",p.getTitle(),"difficulty",p.getDifficulty());}
+ private Map<String,Object> statistics(Problem p){List<Submission>x=submissions.findByProblemIdOrderBySubmittedAtDesc(p.getId());long accepted=x.stream().filter(s->"ACCEPTED".equals(s.getStatus())).count();Map<String,Object> r=new LinkedHashMap<>();r.put("totalSubmissions",x.size());r.put("acceptedSubmissions",accepted);r.put("acceptanceRate",x.isEmpty()?0:Math.round(accepted*100.0/x.size()));return r;}
+ private long rate(Problem p){return ((Number)statistics(p).get("acceptanceRate")).longValue();} private boolean admin(Authentication a){return a.getAuthorities().stream().anyMatch(x->"ROLE_ADMIN".equals(x.getAuthority()));}
+ private Map<String,Object> page(List<Map<String,Object>> all,int page,int size){int safeSize=Math.max(1,Math.min(size,100)),total=all.size(),pages=(int)Math.ceil(total/(double)safeSize),safePage=Math.max(0,Math.min(page,Math.max(0,pages-1))),from=Math.min(safePage*safeSize,total),to=Math.min(from+safeSize,total);Map<String,Object>r=new LinkedHashMap<>();r.put("content",all.subList(from,to));r.put("page",safePage);r.put("size",safeSize);r.put("totalElements",total);r.put("totalPages",pages);r.put("first",safePage==0);r.put("last",safePage>=pages-1);return r;}
+}

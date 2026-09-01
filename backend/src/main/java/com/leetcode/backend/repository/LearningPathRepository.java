@@ -1,0 +1,1 @@
+package com.leetcode.backend.repository;import com.leetcode.backend.model.LearningPath;import org.springframework.data.jpa.repository.JpaRepository;import java.util.*;public interface LearningPathRepository extends JpaRepository<LearningPath,Long>{List<LearningPath>findByPublishedTrue();}

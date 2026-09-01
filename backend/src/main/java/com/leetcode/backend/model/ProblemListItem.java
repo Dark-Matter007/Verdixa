@@ -1,0 +1,3 @@
+package com.leetcode.backend.model;
+import jakarta.persistence.*;
+@Entity @Table(name="problem_list_items",uniqueConstraints=@UniqueConstraint(columnNames={"list_id","problem_id"})) public class ProblemListItem { @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id; @ManyToOne(optional=false) @JoinColumn(name="list_id") private ProblemList list; @ManyToOne(optional=false) @JoinColumn(name="problem_id") private Problem problem; private int position; public Long getId(){return id;} public ProblemList getList(){return list;} public void setList(ProblemList v){list=v;} public Problem getProblem(){return problem;} public void setProblem(Problem v){problem=v;} public int getPosition(){return position;} public void setPosition(int v){position=v;} }

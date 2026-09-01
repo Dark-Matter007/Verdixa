@@ -1,0 +1,12 @@
+{
+  "title": "Reverse String",
+  "description": "Write a function that reverses a string.",
+  "difficulty": "EASY",
+  "constraints": "String length is between 1 and 10000",
+  "inputFormat": "A string s",
+  "outputFormat": "The reversed string",
+  "examples": "Input: hello, Output: olleh",
+  "tags": "string,two-pointers",
+  "starterCode": "public String reverse(String s) {}",
+  "active": true
+}

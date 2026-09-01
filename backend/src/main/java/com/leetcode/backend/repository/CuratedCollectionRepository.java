@@ -1,0 +1,1 @@
+package com.leetcode.backend.repository;import com.leetcode.backend.model.CuratedCollection;import org.springframework.data.jpa.repository.JpaRepository;import java.util.*;public interface CuratedCollectionRepository extends JpaRepository<CuratedCollection,Long>{List<CuratedCollection>findByPublishedTrue();}

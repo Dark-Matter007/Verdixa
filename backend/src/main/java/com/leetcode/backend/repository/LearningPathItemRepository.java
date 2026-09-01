@@ -1,0 +1,1 @@
+package com.leetcode.backend.repository;import com.leetcode.backend.model.LearningPathItem;import org.springframework.data.jpa.repository.JpaRepository;public interface LearningPathItemRepository extends JpaRepository<LearningPathItem,Long>{boolean existsBySectionIdAndProblemId(Long s,Long p);}

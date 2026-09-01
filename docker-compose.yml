@@ -1,0 +1,38 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-leetcode_platform}
+      MYSQL_USER: ${MYSQL_USER:-algosphere}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-algosphere_dev}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_dev_only}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD:-root_dev_only}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+  backend:
+    build: ./backend
+    environment:
+      ALGOSPHERE_DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-leetcode_platform}
+      ALGOSPHERE_DB_USERNAME: ${MYSQL_USER:-algosphere}
+      ALGOSPHERE_DB_PASSWORD: ${MYSQL_PASSWORD:-algosphere_dev}
+      ALGOSPHERE_JWT_SECRET: ${ALGOSPHERE_JWT_SECRET:?Set ALGOSPHERE_JWT_SECRET in .env}
+      ALGOSPHERE_CPP_COMMAND: g++
+      ALGOSPHERE_RUNTIME_PATH: ""
+      ALGOSPHERE_PYTHON_COMMAND: python3
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+volumes:
+  mysql_data:

@@ -1,0 +1,1 @@
+package com.leetcode.backend.repository;import com.leetcode.backend.model.CuratedCollectionItem;import org.springframework.data.jpa.repository.JpaRepository;public interface CuratedCollectionItemRepository extends JpaRepository<CuratedCollectionItem,Long>{boolean existsByCollectionIdAndProblemId(Long c,Long p);}

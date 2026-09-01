@@ -1,0 +1,1 @@
+package com.leetcode.backend.repository; import com.leetcode.backend.model.ProblemListItem; import org.springframework.data.jpa.repository.JpaRepository; public interface ProblemListItemRepository extends JpaRepository<ProblemListItem,Long>{boolean existsByListIdAndProblemId(Long l,Long p);}

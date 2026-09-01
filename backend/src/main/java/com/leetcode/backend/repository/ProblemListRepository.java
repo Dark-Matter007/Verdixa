@@ -1,0 +1,1 @@
+package com.leetcode.backend.repository; import com.leetcode.backend.model.ProblemList; import org.springframework.data.jpa.repository.JpaRepository; import java.util.*; public interface ProblemListRepository extends JpaRepository<ProblemList,Long>{List<ProblemList> findByUserId(Long id); Optional<ProblemList> findByIdAndUserId(Long id,Long userId);}
