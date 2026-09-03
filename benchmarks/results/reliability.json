@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "timestamp_utc": "2026-09-03T18:00:14.405919+00:00",
+  "scope": "HTTP request validation and authentication failure handling; no external infrastructure modified.",
+  "cases": [
+    {
+      "name": "unauthenticated-protected-library",
+      "http_status": 403,
+      "response_bytes": 0,
+      "response_excerpt": ""
+    },
+    {
+      "name": "malformed-login-json",
+      "http_status": 400,
+      "response_bytes": 85,
+      "response_excerpt": "{\"message\":\"JSON parse error: Unexpected end-of-input within/between Object entries\"}"
+    },
+    {
+      "name": "invalid-login-credentials",
+      "http_status": 400,
+      "response_bytes": 42,
+      "response_excerpt": "{\"message\":\"Invalid username or password\"}"
+    }
+  ]
+}

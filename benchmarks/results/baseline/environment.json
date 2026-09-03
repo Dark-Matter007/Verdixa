@@ -1,0 +1,10 @@
+{
+  "timestamp_utc": "2026-09-03T17:48:46.1440352Z",
+  "os": "Microsoft Windows NT 10.0.26200.0",
+  "cpu_logical_processors": 16,
+  "memory_bytes": null,
+  "java": "java version \"21.0.3\" 2024-04-16 LTS",
+  "python": "Python 3.11.5",
+  "database": "H2 in-memory 2.x (benchmark Maven profile; MySQL is not measured)",
+  "server": "Spring Boot embedded Tomcat; max threads 64; Hikari maximum pool 16"
+}

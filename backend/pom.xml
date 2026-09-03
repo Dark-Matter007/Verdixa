@@ -155,4 +155,19 @@
 		</plugins>
 	</build>
 
+	<!-- Local-only benchmark runtime. This keeps H2 out of the production
+	     runtime classpath while allowing `mvn -Pbenchmark spring-boot:run`. -->
+	<profiles>
+		<profile>
+			<id>benchmark</id>
+			<dependencies>
+				<dependency>
+					<groupId>com.h2database</groupId>
+					<artifactId>h2</artifactId>
+					<scope>runtime</scope>
+				</dependency>
+			</dependencies>
+		</profile>
+	</profiles>
+
 </project>

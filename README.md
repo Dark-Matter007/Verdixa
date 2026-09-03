@@ -309,6 +309,46 @@ Verdixa generates the language-specific harness, supplies the configured typed a
 - The supported FUNCTION type system is intentionally limited to the scalar and array types listed above.
 - CORS is configured for the local Vite origin (`http://localhost:5173`); production origins must be configured deliberately.
 
+<!-- BENCHMARK_RESULTS:START -->
+## Performance & Evaluation
+
+> All values in this section are generated from committed raw JSON by `python benchmarks/generate_report.py`.
+
+### Test Environment
+
+Windows (Microsoft Windows NT 10.0.26200.0); 16 logical processors; java version "21.0.3" 2024-04-16 LTS; Python 3.11.5; H2 in-memory 2.x (benchmark Maven profile; MySQL is not measured). Total system RAM was unavailable to the restricted local shell.
+
+### Benchmark Methodology
+
+The measured production read path is authenticated `GET /api/problems/library?size=100`. Each clean run starts the `benchmark` Spring profile with an in-memory H2 database seeded with 1 user, 100 active problems, and 1,000 submissions. Each level has a 10-second warm-up and 20-second measurement window. This is a local H2 result, not a MySQL, Docker, or multi-host claim. Raw inputs are [baseline results](benchmarks/results/baseline/) and [optimized results](benchmarks/results/optimized/).
+
+### Scale Test and Performance Results
+
+| Concurrent clients | Baseline RPS | Optimized RPS | Baseline p50 / p95 / p99 (ms) | Optimized p50 / p95 / p99 (ms) | Error rate |
+| ---: | ---: | ---: | --- | --- | ---: |
+| 1 | 10.965 | 27.150 | 89.352 / 114.871 / 121.971 | 36.786 / 51.299 / 55.931 | 0.0000% → 0.0000% |
+| 4 | 41.410 | 144.492 | 95.268 / 119.666 / 130.990 | 26.562 / 45.213 / 52.855 | 0.0000% → 0.0000% |
+| 8 | 68.627 | 269.534 | 114.708 / 142.250 / 160.218 | 27.473 / 50.915 / 60.894 | 0.0000% → 0.0000% |
+
+| Concurrent clients | Throughput change | p95 reduction |
+| ---: | ---: | ---: |
+| 1 | +147.61% | 55.34% |
+| 4 | +248.93% | 62.22% |
+| 8 | +292.75% | 64.21% |
+
+### Baseline vs Optimized
+
+The optimization replaces per-problem submission-row loading in the library response with one grouped aggregate query. It preserves the response fields while avoiding repeated database round trips. The largest tested level was 8 concurrent clients; it completed without request errors in both passes. No saturation point above 8 clients was measured, so none is claimed.
+
+### Reliability Testing
+
+The local automated checks cover unauthenticated protected access, malformed login JSON, and invalid credentials; their exact observed statuses are in [reliability.json](benchmarks/results/reliability.json). Redis, queues, workers, and an external database are not part of this repository's local architecture, so cache/queue/database-restart metrics are not applicable to this run.
+
+### Reproducing the Benchmark
+
+See [benchmarks/README.md](benchmarks/README.md). Run `powershell -ExecutionPolicy Bypass -File benchmarks/run_local.ps1 -Label baseline`, apply/verify the target change, run the identical command with `-Label optimized`, then run `python benchmarks/generate_report.py`.
+<!-- BENCHMARK_RESULTS:END -->
+
 ## Future Improvements
 
 - Containerized or VM-isolated execution workers with resource limits.

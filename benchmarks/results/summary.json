@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "environment": {
+    "timestamp_utc": "2026-09-03T17:48:46.1440352Z",
+    "os": "Microsoft Windows NT 10.0.26200.0",
+    "cpu_logical_processors": 16,
+    "memory_bytes": null,
+    "java": "java version \"21.0.3\" 2024-04-16 LTS",
+    "python": "Python 3.11.5",
+    "database": "H2 in-memory 2.x (benchmark Maven profile; MySQL is not measured)",
+    "server": "Spring Boot embedded Tomcat; max threads 64; Hikari maximum pool 16"
+  },
+  "workload": {
+    "endpoint": "/api/problems/library?size=100",
+    "concurrency": 1,
+    "warmup_seconds": 10,
+    "measurement_seconds": 20,
+    "seed": {
+      "users": 1,
+      "problems": 100,
+      "submissions": 1000
+    }
+  },
+  "comparisons": [
+    {
+      "concurrency": 1,
+      "throughput_change_percent": 147.61,
+      "p95_reduction_percent": 55.34
+    },
+    {
+      "concurrency": 4,
+      "throughput_change_percent": 248.93,
+      "p95_reduction_percent": 62.22
+    },
+    {
+      "concurrency": 8,
+      "throughput_change_percent": 292.75,
+      "p95_reduction_percent": 64.21
+    }
+  ]
+}

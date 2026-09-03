@@ -3,6 +3,8 @@ package com.leetcode.backend.repository;
 import com.leetcode.backend.model.Submission;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -27,4 +29,21 @@ public interface SubmissionRepository
     java.util.Optional<Submission> findWithUserAndProblemById(Long id);
 
     long countByStatus(String status);
+
+    /** Aggregate library-card statistics in one query instead of loading rows per card. */
+    @Query("""
+            select s.problem.id as problemId,
+                   count(s) as totalSubmissions,
+                   coalesce(sum(case when s.status = 'ACCEPTED' then 1 else 0 end), 0) as acceptedSubmissions
+            from Submission s
+            where s.problem.id in :problemIds
+            group by s.problem.id
+            """)
+    List<ProblemSubmissionStats> summarizeByProblemIds(@Param("problemIds") List<Long> problemIds);
+
+    interface ProblemSubmissionStats {
+        Long getProblemId();
+        long getTotalSubmissions();
+        long getAcceptedSubmissions();
+    }
 }
