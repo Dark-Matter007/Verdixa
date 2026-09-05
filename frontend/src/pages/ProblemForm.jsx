@@ -3,11 +3,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   Save,
-  Code2,
   Loader2,
 } from "lucide-react";
 import api from "../services/api";
-import BrandLogo from "../components/BrandLogo";
+import Sidebar from "../components/Sidebar";
 
 function ProblemForm() {
   const navigate = useNavigate();
@@ -19,6 +18,9 @@ function ProblemForm() {
   const [saving, setSaving] = useState(false);
   const [starterLanguage, setStarterLanguage] = useState("java");
   const [starterTemplates, setStarterTemplates] = useState({ java: "", cpp: "", python: "" });
+  const [hints, setHints] = useState([]);
+  const [guidanceSaving, setGuidanceSaving] = useState(false);
+  const [editorial, setEditorial] = useState({ title:"", intuition:"", approach:"", algorithmExplanation:"", edgeCases:"", timeComplexity:"", spaceComplexity:"", javaSolution:"", cppSolution:"", pythonSolution:"", published:false });
 
   const [form, setForm] = useState({
     title: "",
@@ -74,6 +76,12 @@ function ProblemForm() {
       } catch {
         setStarterTemplates((previous) => ({ ...previous, java: problem.starterCode || "" }));
       }
+      const [hintResult, editorialResult] = await Promise.allSettled([
+        api.get(`/problems/${id}/hints/admin`),
+        api.get(`/problems/${id}/editorial`),
+      ]);
+      if (hintResult.status === "fulfilled") setHints(hintResult.value.data || []);
+      if (editorialResult.status === "fulfilled") setEditorial((previous) => ({...previous,...editorialResult.value.data}));
     } catch (error) {
       console.error("Failed to load problem:", error);
       alert("Unable to load problem.");
@@ -153,10 +161,43 @@ function ProblemForm() {
     }
   };
 
+  const saveHint = async (hint, index) => {
+    if (!hint.title?.trim() || !hint.content?.trim()) return alert("Hint title and content are required.");
+    try {
+      setGuidanceSaving(true);
+      const payload={title:hint.title.trim(),content:hint.content.trim(),penaltyPoints:Number(hint.penaltyPoints)||0,active:hint.active!==false};
+      const response=hint.id?await api.put(`/problems/${id}/hints/${hint.id}`,payload):await api.post(`/problems/${id}/hints`,payload);
+      setHints((items)=>items.map((item,i)=>i===index?response.data:item));
+    } catch(error){alert(error.response?.data?.message||"Unable to save hint.");} finally {setGuidanceSaving(false);}
+  };
+  const removeHint = async (hint,index) => {
+    if(hint.id && !window.confirm("Delete this hint?")) return;
+    try {if(hint.id) await api.delete(`/problems/${id}/hints/${hint.id}`);setHints((items)=>items.filter((_,i)=>i!==index));}
+    catch(error){alert(error.response?.data?.message||"Unable to delete hint.");}
+  };
+  const moveHint = async (index, direction) => {
+    const target = index + direction;
+    if (target < 0 || target >= hints.length) return;
+    const reordered = [...hints];
+    [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
+    setHints(reordered);
+    if (reordered.every((hint) => hint.id)) {
+      try { const response = await api.put(`/problems/${id}/hints/reorder`, reordered.map((hint) => hint.id)); setHints(response.data); }
+      catch (error) { setHints(hints); alert(error.response?.data?.message || "Unable to reorder hints."); }
+    }
+  };
+  const saveEditorial = async () => {
+    const required=["title","intuition","approach","algorithmExplanation","timeComplexity","spaceComplexity","javaSolution","cppSolution","pythonSolution"];
+    if(required.some((field)=>!String(editorial[field]||"").trim())) return alert("Complete every required editorial field before saving.");
+    try {setGuidanceSaving(true);const response=await api.put(`/problems/${id}/editorial`,editorial);setEditorial(response.data);}
+    catch(error){alert(error.response?.data?.message||"Unable to save editorial.");} finally {setGuidanceSaving(false);}
+  };
+
   if (loading) {
     return (
-      <div className="dashboard-layout">
-        <main className="dashboard-main">
+      <div className="dashboard-layout vx-admin-shell">
+        <Sidebar />
+        <main className="dashboard-main vx-admin-main">
           <div className="loading">
             <Loader2 size={20} className="spin" />
             Loading problem...
@@ -167,54 +208,11 @@ function ProblemForm() {
   }
 
   return (
-    <div className="dashboard-layout">
+    <div className="dashboard-layout vx-admin-shell">
+      <Sidebar />
+      <main className="dashboard-main vx-admin-main">
 
-      <aside className="sidebar">
-
-        <div className="sidebar-brand">
-          <BrandLogo compact />
-
-          <div>
-            <strong>Verdixa</strong>
-            <span>ADMIN</span>
-          </div>
-        </div>
-
-        <nav className="sidebar-nav">
-
-          <button
-            className="sidebar-item"
-            onClick={() => navigate("/admin")}
-          >
-            Dashboard
-          </button>
-
-          <button
-            className="sidebar-item active"
-            onClick={() => navigate("/admin/problems")}
-          >
-            Problems
-          </button>
-
-        </nav>
-
-        <button
-          className="sidebar-logout"
-          onClick={() => {
-            localStorage.removeItem("algosphere_token");
-            localStorage.removeItem("algosphere_role");
-            localStorage.removeItem("algosphere_username");
-            navigate("/login");
-          }}
-        >
-          Logout
-        </button>
-
-      </aside>
-
-      <main className="dashboard-main">
-
-        <header className="dashboard-header">
+        <header className="dashboard-header vx-admin-head">
 
           <div>
 
@@ -503,6 +501,49 @@ Output: [1,2]`}
 
               </div>
 
+            </div>
+
+            <div className="form-section vx-guidance-editor">
+              <div className="form-section-header">
+                <h2>Guidance & Editorial</h2>
+                <p>Hints become visible to a user after their third submission attempt. Editorials can be drafted privately and published when ready.</p>
+              </div>
+
+              {!isEditMode ? (
+                <div className="vx-guidance-notice">Save the problem first, then reopen it to add hints and its editorial.</div>
+              ) : (
+                <>
+                  <div className="vx-guidance-heading">
+                    <div><span>Progressive hints</span><small>{hints.length} configured · unlock after 3 attempts</small></div>
+                    <button type="button" className="secondary-button" onClick={() => setHints((items) => [...items, { title:"", content:"", penaltyPoints:0, active:true }])}>Add hint</button>
+                  </div>
+                  <div className="vx-hint-editor-list">
+                    {hints.length === 0 && <div className="vx-guidance-empty">No hints configured. Add concise guidance that helps without revealing the complete solution.</div>}
+                    {hints.map((hint, index) => (
+                      <article className="vx-hint-editor" key={hint.id || `new-${index}`}>
+                        <header><strong>Hint {index + 1}</strong><small>{hint.id ? "Saved" : "Draft"}</small></header>
+                        <label>Title<input value={hint.title || ""} onChange={(event) => setHints((items) => items.map((item, i) => i === index ? {...item, title:event.target.value} : item))} placeholder="Point toward the next insight" /></label>
+                        <label className="vx-form-span">Guidance<textarea rows="4" value={hint.content || ""} onChange={(event) => setHints((items) => items.map((item, i) => i === index ? {...item, content:event.target.value} : item))} placeholder="Explain the idea without giving away the implementation." /></label>
+                        <label>Penalty points<input type="number" min="0" value={hint.penaltyPoints ?? 0} onChange={(event) => setHints((items) => items.map((item, i) => i === index ? {...item, penaltyPoints:event.target.value} : item))} /></label>
+                        <label className="checkbox-label"><input type="checkbox" checked={hint.active !== false} onChange={(event) => setHints((items) => items.map((item, i) => i === index ? {...item, active:event.target.checked} : item))} /><span>Available when unlocked</span></label>
+                        <div className="vx-hint-actions"><button type="button" className="secondary-button" disabled={index === 0 || guidanceSaving} aria-label={`Move hint ${index + 1} up`} onClick={() => moveHint(index, -1)}>↑</button><button type="button" className="secondary-button" disabled={index === hints.length - 1 || guidanceSaving} aria-label={`Move hint ${index + 1} down`} onClick={() => moveHint(index, 1)}>↓</button><button type="button" className="secondary-button" disabled={guidanceSaving} onClick={() => saveHint(hint, index)}>Save hint</button><button type="button" className="danger-button" disabled={guidanceSaving} onClick={() => removeHint(hint, index)}>Delete</button></div>
+                      </article>
+                    ))}
+                  </div>
+
+                  <div className="vx-editorial-editor">
+                    <div className="vx-guidance-heading"><div><span>Technical editorial</span><small>Structured explanation and language solutions</small></div><label className="checkbox-label"><input type="checkbox" checked={Boolean(editorial.published)} onChange={(event) => setEditorial((value) => ({...value, published:event.target.checked}))}/><span>Published</span></label></div>
+                    <div className="form-grid">
+                      <label className="form-group form-full">Title<input value={editorial.title || ""} onChange={(event) => setEditorial((value) => ({...value,title:event.target.value}))} /></label>
+                      {[['intuition','Intuition'],['approach','Approach'],['algorithmExplanation','Algorithm'],['edgeCases','Edge cases'],['timeComplexity','Time complexity'],['spaceComplexity','Space complexity']].map(([field,label]) => <label className={`form-group ${['intuition','approach','algorithmExplanation','edgeCases'].includes(field) ? 'form-full' : ''}`} key={field}>{label}<textarea rows={['timeComplexity','spaceComplexity'].includes(field) ? 3 : 5} value={editorial[field] || ""} onChange={(event) => setEditorial((value) => ({...value,[field]:event.target.value}))} /></label>)}
+                    </div>
+                    <div className="vx-editorial-code-grid">
+                      {[['javaSolution','Java'],['cppSolution','C++17'],['pythonSolution','Python']].map(([field,label]) => <label className="form-group" key={field}>{label} solution<textarea className="code-input" rows="10" value={editorial[field] || ""} onChange={(event) => setEditorial((value) => ({...value,[field]:event.target.value}))} /></label>)}
+                    </div>
+                    <button type="button" className="primary-button" disabled={guidanceSaving} onClick={saveEditorial}>{guidanceSaving ? "Saving guidance…" : "Save editorial"}</button>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* STATUS */}

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowLeft,
   Plus,
   Search,
   Edit,
@@ -10,8 +9,9 @@ import {
   Code2,
 } from "lucide-react";
 import api from "../services/api";
-import BrandLogo from "../components/BrandLogo";
 import Pagination from "../components/Pagination";
+import AdminShell from "../components/AdminShell";
+import { EmptyState, LoadingState } from "../components/PageState";
 
 function ProblemList() {
   const navigate = useNavigate();
@@ -65,55 +65,7 @@ function ProblemList() {
   const filteredProblems = problems;
 
   return (
-    <div className="dashboard-layout">
-
-      <aside className="sidebar">
-
-        <div className="sidebar-brand">
-          <BrandLogo compact />
-
-          {error && <div className="error-message">{error}</div>}
-
-          <div>
-            <strong>Verdixa</strong>
-            <span>ADMIN</span>
-          </div>
-        </div>
-
-        <nav className="sidebar-nav">
-
-          <button
-            className="sidebar-item"
-            onClick={() => navigate("/admin")}
-          >
-            Dashboard
-          </button>
-
-          <button className="sidebar-item active">
-            Problems
-          </button>
-
-        </nav>
-
-      </aside>
-
-      <main className="dashboard-main">
-
-        <header className="dashboard-header">
-
-          <div>
-            <button
-              className="back-button"
-              onClick={() => navigate("/admin")}
-            >
-              <ArrowLeft size={18} />
-              Back to Dashboard
-            </button>
-
-            <h1>Problem Management</h1>
-            <p>Create, edit and manage coding problems.</p>
-          </div>
-
+    <AdminShell title="Problem Management" description="Create, configure, publish, and review the platform's problem catalogue." actions={
           <button
             className="primary-button"
             onClick={() => navigate("/admin/problems/new")}
@@ -121,9 +73,7 @@ function ProblemList() {
             <Plus size={18} />
             Add Problem
           </button>
-
-        </header>
-
+    }>
         <section className="dashboard-section">
 
           <div className="search-container">
@@ -139,23 +89,12 @@ function ProblemList() {
 
           </div>
 
+          {error && <div className="error-message">{error}</div>}
           {loading ? (
-            <div className="loading">
-              Loading problems...
-            </div>
+            <LoadingState label="Loading problem catalogue" />
           ) : filteredProblems.length === 0 ? (
-            <div className="empty-state">
-
-              <Code2 size={45} />
-
-              <h3>No problems found</h3>
-
-              <p>
-                {search
-                  ? "No problems match your search."
-                  : "Create your first coding problem."}
-              </p>
-
+            <EmptyState title="No problems found" icon={Code2}>
+              {search ? "No problems match your search." : "Create your first coding problem."}
               {!search && (
                 <button
                   className="primary-button"
@@ -165,8 +104,7 @@ function ProblemList() {
                   Create Problem
                 </button>
               )}
-
-            </div>
+            </EmptyState>
           ) : (
 
             <div className="problem-table">
@@ -246,9 +184,7 @@ function ProblemList() {
 
         </section>
 
-      </main>
-
-    </div>
+    </AdminShell>
   );
 }
 

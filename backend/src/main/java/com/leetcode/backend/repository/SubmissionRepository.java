@@ -30,6 +30,14 @@ public interface SubmissionRepository
 
     long countByStatus(String status);
 
+    long countByUserIdAndProblemId(Long userId, Long problemId);
+
+    @EntityGraph(attributePaths = {"user", "problem", "contest", "contestProblem"})
+    List<Submission> findByContestIdOrderBySubmittedAtAsc(Long contestId);
+
+    @EntityGraph(attributePaths = {"user", "problem", "contest", "contestProblem"})
+    List<Submission> findByContestIdAndUserIdOrderBySubmittedAtDesc(Long contestId, Long userId);
+
     /** Aggregate library-card statistics in one query instead of loading rows per card. */
     @Query("""
             select s.problem.id as problemId,

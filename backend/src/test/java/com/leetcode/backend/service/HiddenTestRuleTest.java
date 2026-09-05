@@ -12,7 +12,7 @@ class HiddenTestRuleTest {
     @Test void onlyFourHiddenTestsAllowsPublishing() {
         for(long count=0;count<=4;count++) {
             ProblemRepository problems=mock(ProblemRepository.class); TestCaseRepository tests=mock(TestCaseRepository.class);
-            Problem existing=problem(false), update=problem(true); when(problems.findById(1L)).thenReturn(Optional.of(existing)); when(tests.countByProblemIdAndHiddenTrue(1L)).thenReturn(count);
+            Problem existing=problem(false), update=problem(true); when(problems.findWithFunctionSignatureById(1L)).thenReturn(Optional.of(existing)); when(tests.countByProblemIdAndHiddenTrue(1L)).thenReturn(count);
             ProblemService service=new ProblemService(problems,tests);
             if(count==4) assertDoesNotThrow(()->service.updateProblem(1L,update));
             else assertThrows(IllegalArgumentException.class,()->service.updateProblem(1L,update));

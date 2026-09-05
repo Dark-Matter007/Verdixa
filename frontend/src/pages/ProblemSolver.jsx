@@ -8,7 +8,6 @@ import {
   XCircle,
   AlertTriangle,
   Clock3,
-  Code2,
   Maximize2,
   Minimize2,
   RotateCcw,
@@ -18,10 +17,13 @@ import Editor from "@monaco-editor/react";
 import api from "../services/api";
 import BrandLogo from "../components/BrandLogo";
 
+const EMPTY_HINTS = { total: 0, unlocked: 0, attempts: 0, unlockAt: 3, available: false, hints: [] };
+
 function ProblemSolver() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const contestId = new URLSearchParams(location.search).get("contest");
 
   const [problem, setProblem] = useState(null);
   const [sourceCode, setSourceCode] = useState("");
@@ -33,6 +35,8 @@ function ProblemSolver() {
   const [editorExpanded, setEditorExpanded] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   const [editorial, setEditorial] = useState(null);
+  const [hintData, setHintData] = useState(EMPTY_HINTS);
+  const [pendingHint, setPendingHint] = useState(null);
   const [note, setNote] = useState("");
   const [noteState, setNoteState] = useState("idle");
   const [activePanel, setActivePanel] = useState("description");
@@ -62,7 +66,7 @@ function ProblemSolver() {
       setLoading(true);
       setError("");
 
-      const response = await api.get(`/problems/${id}`);
+      const response = await api.get(contestId ? `/contests/${contestId}/problems/${id}` : `/problems/${id}`);
 
       const data = response.data;
 
@@ -70,6 +74,7 @@ function ProblemSolver() {
       api.get(`/problems/${id}/navigation`).then((value) => setNavigation(value.data || {})).catch(() => setNavigation({}));
       api.get("/lists").then((value) => setPersonalLists(value.data || [])).catch(() => setPersonalLists([]));
       api.get(`/problems/${id}/editorial`).then((value) => setEditorial(value.data)).catch(() => setEditorial(null));
+      api.get(`/problems/${id}/hints`).then((value) => setHintData(Array.isArray(value.data) ? EMPTY_HINTS : value.data || EMPTY_HINTS)).catch(() => setHintData(EMPTY_HINTS));
       api.get(`/problems/${id}/note`).then((value) => setNote(value.data.content || "")).catch(() => setNote(""));
       const bookmarkResponse = await api.get(`/bookmarks/${id}`);
       setBookmarked(Boolean(bookmarkResponse.data));
@@ -128,7 +133,7 @@ function ProblemSolver() {
     } finally {
       setLoading(false);
     }
-  }, [id, navigate, location.state]);
+  }, [id, navigate, location.state, contestId]);
 
   const runCode = async (caseIndex = null) => {
     if (!sourceCode.trim()) {
@@ -202,6 +207,14 @@ function ProblemSolver() {
     catch { setNoteState("error"); }
   };
   const addToList = async (listId) => { if (!listId) return; try { await api.post(`/lists/${listId}/problems/${id}`); setError(""); } catch (err) { setError(err.response?.data?.message || "Unable to add this problem to the list."); } };
+  const revealHint = async (hint) => {
+    try {
+      await api.post(`/problems/${id}/hints/${hint.id}/reveal`);
+      const response = await api.get(`/problems/${id}/hints`);
+      setHintData(response.data || EMPTY_HINTS);
+      setPendingHint(null);
+    } catch (err) { setError(err.response?.data?.message || "Unable to reveal this hint."); }
+  };
 
   useEffect(() => {
     if (!localStorage.getItem("algosphere_token")) {
@@ -225,13 +238,14 @@ function ProblemSolver() {
       setResult(null);
 
       const response = await api.post(
-        `/submissions?problemId=${id}&language=${language}`,
+        `/submissions?problemId=${id}&language=${language}${contestId ? `&contestId=${contestId}` : ""}`,
         sourceCode,
         { headers: { "Content-Type": "text/plain" } }
       );
 
       setResult(response.data);
       fetchSubmissionHistory();
+      api.get(`/problems/${id}/hints`).then((value) => { if (!Array.isArray(value.data)) setHintData(value.data); }).catch(() => {});
     } catch (err) {
       console.error("Submission failed:", err);
       if (err.response?.status === 401) setError("Your session expired. Please sign in again.");
@@ -355,8 +369,9 @@ function ProblemSolver() {
 
           <div className="problem-description">
 
-            <div className="problem-tabs" role="tablist"><button className={activePanel === "description" ? "active" : ""} onClick={() => setActivePanel("description")}>Description</button><button className={activePanel === "editorial" ? "active" : ""} onClick={() => setActivePanel("editorial")}>Editorial</button><button className={activePanel === "notes" ? "active" : ""} onClick={() => setActivePanel("notes")}>My Notes</button></div>
+            <div className="problem-tabs" role="tablist"><button role="tab" aria-selected={activePanel === "description"} className={activePanel === "description" ? "active" : ""} onClick={() => setActivePanel("description")}>Description</button><button role="tab" aria-selected={activePanel === "hints"} className={activePanel === "hints" ? "active" : ""} onClick={() => setActivePanel("hints")}>Hints {hintData.total ? `(${hintData.unlocked}/${hintData.total})` : ""}</button><button role="tab" aria-selected={activePanel === "editorial"} className={activePanel === "editorial" ? "active" : ""} onClick={() => setActivePanel("editorial")}>Editorial</button><button role="tab" aria-selected={activePanel === "notes"} className={activePanel === "notes" ? "active" : ""} onClick={() => setActivePanel("notes")}>My Notes</button></div>
 
+            {activePanel === "hints" && <div className="editorial-panel hints-panel"><p className="hint-summary">{hintData.total ? `${hintData.unlocked} of ${hintData.total} hints revealed · ${hintData.attempts} submission attempt${hintData.attempts === 1 ? "" : "s"} on this problem.` : "No hints are configured for this problem."}</p>{hintData.hints.map((hint, index) => <article className={`hint-card ${hint.revealed ? "revealed" : hint.available ? "available" : "locked"}`} key={hint.id}><h3>{hint.revealed ? hint.title : `Hint ${index + 1}`}</h3>{hint.revealed ? <><p>{hint.content}</p>{hint.penaltyPoints > 0 && <small>Penalty applied: {hint.penaltyPoints} points</small>}</> : hint.available ? <><p>Available to reveal{hint.penaltyPoints > 0 ? ` · ${hint.penaltyPoints}-point penalty` : ""}.</p><button className="secondary-button" onClick={() => hint.penaltyPoints > 0 ? setPendingHint(hint) : revealHint(hint)}>Reveal hint</button></> : <><p>{Math.min(hintData.attempts, hint.attemptsRequired)} of {hint.attemptsRequired} attempts completed</p><small>Available after {hint.attemptsRemaining} more attempt{hint.attemptsRemaining === 1 ? "" : "s"}.</small></>}</article>)}{pendingHint && <div className="hint-confirm" role="dialog" aria-modal="true" aria-label="Confirm hint reveal"><p>Revealing this hint applies a {pendingHint.penaltyPoints}-point penalty. Continue?</p><button className="secondary-button" onClick={() => setPendingHint(null)}>Cancel</button><button className="submit-button" onClick={() => revealHint(pendingHint)}>Reveal hint</button></div>}</div>}
             {activePanel === "editorial" && <div className="editorial-panel">{editorial ? <><h2>Intuition</h2><p>{editorial.intuition}</p><h2>Approach</h2><p>{editorial.approach}</p><h2>Algorithm</h2><p>{editorial.algorithmExplanation}</p><h2>Edge Cases</h2><p>{editorial.edgeCases}</p><p><strong>Time:</strong> {editorial.timeComplexity || "Not specified"} · <strong>Space:</strong> {editorial.spaceComplexity || "Not specified"}</p><details><summary>Official solutions</summary><pre>{language === "java" ? editorial.javaSolution : language === "cpp" ? editorial.cppSolution : editorial.pythonSolution}</pre></details></> : <p>No editorial has been published yet.</p>}</div>}
             {activePanel === "notes" && <div className="notes-panel"><label htmlFor="private-note">Private note</label><textarea id="private-note" value={note} onChange={(event) => { setNote(event.target.value); setNoteState("idle"); }} placeholder="Capture your approach, edge cases, and lessons learned." rows="10"/><div className="form-actions"><button onClick={saveNote} disabled={noteState === "saving"}>{noteState === "saving" ? "Saving…" : "Save Note"}</button>{note && <button onClick={deleteNote}>Delete Note</button>}</div>{noteState === "saved" && <small>Saved privately to your account.</small>}{noteState === "error" && <small>Unable to save your note.</small>}</div>}
 
@@ -476,7 +491,7 @@ function ProblemSolver() {
           <div className="custom-input-panel">
             <div className="custom-input-header">
               <div>
-                <span className="solver-label">{isFunctionProblem ? "Custom Testcases" : "Custom Input"}</span>
+                <span className="solver-label">Custom Input</span>
                 <p>{isFunctionProblem && functionConfigured ? `${displayedFunctionName}(${functionParameters.map((p)=>`${p.name}: ${p.type}`).join(", ")}) → ${functionSignature.returnType}` : isFunctionProblem ? "Function configuration unavailable." : "Provide stdin for Run Code. Submit uses the problem test cases."}</p>
               </div>
               <button type="button" className="clear-input" onClick={() => isFunctionProblem ? setCustomCases([{arguments:functionParameters.map(()=>""),expected:""}]) : setCustomInput("")}>Clear</button>
@@ -487,7 +502,7 @@ function ProblemSolver() {
               onChange={(e) => setCustomInput(e.target.value)}
               placeholder="Example: hello"
               spellCheck="false"
-            /> : functionConfigured ? <div className="function-custom-cases">{customCases.map((testCase,caseIndex)=><div className="function-custom-case" key={caseIndex}><h3>Case {caseIndex+1}</h3>{functionParameters.map((parameter,index)=><label key={parameter.name}>{parameter.name} <small>{parameter.type}</small><textarea placeholder={placeholderFor(parameter.type)} value={testCase.arguments[index]||""} onChange={(e)=>setCustomCases((items)=>items.map((item,i)=>i===caseIndex?{...item,arguments:item.arguments.map((value,j)=>j===index?e.target.value:value)}:item))}/></label>)}<label>Expected <small>optional</small><textarea placeholder={placeholderFor(functionSignature.returnType)} value={testCase.expected} onChange={(e)=>setCustomCases((items)=>items.map((item,i)=>i===caseIndex?{...item,expected:e.target.value}:item))}/></label><div className="custom-case-actions"><button type="button" onClick={()=>runCode(caseIndex)}>Run Case</button>{customCases.length>1&&<button type="button" onClick={()=>setCustomCases((items)=>items.filter((_,i)=>i!==caseIndex))}>Delete</button>}</div></div>)}<div className="custom-case-actions"><button type="button" onClick={()=>setCustomCases((items)=>[...items,{arguments:functionParameters.map(()=>""),expected:""}])}>+ Add Testcase</button><button type="button" onClick={()=>runCode()}>Run All</button></div></div>:<div className="solver-error">Function configuration unavailable. Ask an administrator to complete the FUNCTION metadata.</div>}
+            /> : functionConfigured ? <div className="function-custom-cases">{customCases.map((testCase,caseIndex)=><div className="function-custom-case" key={caseIndex}><h3>Custom input {caseIndex+1}</h3>{functionParameters.map((parameter,index)=><label key={parameter.name}>{parameter.name} <small>{parameter.type}</small><textarea placeholder={placeholderFor(parameter.type)} value={testCase.arguments[index]||""} onChange={(e)=>setCustomCases((items)=>items.map((item,i)=>i===caseIndex?{...item,arguments:item.arguments.map((value,j)=>j===index?e.target.value:value)}:item))}/></label>)}<label>Expected <small>optional</small><textarea placeholder={placeholderFor(functionSignature.returnType)} value={testCase.expected} onChange={(e)=>setCustomCases((items)=>items.map((item,i)=>i===caseIndex?{...item,expected:e.target.value}:item))}/></label><div className="custom-case-actions"><button type="button" onClick={()=>runCode(caseIndex)}>Run Input</button>{customCases.length>1&&<button type="button" onClick={()=>setCustomCases((items)=>items.filter((_,i)=>i!==caseIndex))}>Delete</button>}</div></div>)}<div className="custom-case-actions"><button type="button" onClick={()=>setCustomCases((items)=>[...items,{arguments:functionParameters.map(()=>""),expected:""}])}>+ Add Custom Input</button><button type="button" onClick={()=>runCode()}>Run All Inputs</button></div></div>:<div className="solver-error">Function configuration unavailable. Ask an administrator to complete the FUNCTION metadata.</div>}
           </div>
 
           {error && (

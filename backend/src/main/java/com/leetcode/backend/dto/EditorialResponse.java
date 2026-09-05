@@ -1,0 +1,4 @@
+package com.leetcode.backend.dto;
+import com.leetcode.backend.model.Editorial;
+import java.time.LocalDateTime;
+public record EditorialResponse(Long id,String title,String intuition,String approach,String algorithmExplanation,String edgeCases,String timeComplexity,String spaceComplexity,String javaSolution,String cppSolution,String pythonSolution,boolean published,LocalDateTime updatedAt){public static EditorialResponse from(Editorial e){return new EditorialResponse(e.getId(),e.getTitle(),e.getIntuition(),e.getApproach(),e.getAlgorithmExplanation(),e.getEdgeCases(),e.getTimeComplexity(),e.getSpaceComplexity(),e.getJavaSolution(),e.getCppSolution(),e.getPythonSolution(),e.isPublished(),e.getUpdatedAt());}}

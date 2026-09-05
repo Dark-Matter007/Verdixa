@@ -22,6 +22,16 @@ public class Submission {
     @JoinColumn(name = "problem_id", nullable = false)
     private Problem problem;
 
+    /** Null for ordinary practice submissions.  Contest submissions retain the
+     * immutable contest context used for standings and audit history. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "contest_id")
+    private Contest contest;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "contest_problem_id")
+    private ContestProblem contestProblem;
+
     @Column(name = "source_code", nullable = false, columnDefinition = "TEXT")
     private String sourceCode;
 
@@ -79,6 +89,10 @@ public class Submission {
     public void setProblem(Problem problem) {
         this.problem = problem;
     }
+    public Contest getContest() { return contest; }
+    public void setContest(Contest contest) { this.contest = contest; }
+    public ContestProblem getContestProblem() { return contestProblem; }
+    public void setContestProblem(ContestProblem contestProblem) { this.contestProblem = contestProblem; }
 
     public String getSourceCode() {
         return sourceCode;

@@ -1,4 +1,4 @@
-import { BarChart3, History, LogOut, Trophy, CalendarDays, Map } from "lucide-react";
+import { BarChart3, History, LogOut, Trophy, CalendarDays, Map, Swords } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 function UserNavigation({ active, compact = false }) {
@@ -36,6 +36,7 @@ function UserNavigation({ active, compact = false }) {
         <Trophy size={17} />
         <span>Ranks</span>
       </button>
+      <button className={active === "contests" ? "user-nav-button active" : "user-nav-button"} onClick={() => navigate("/contests")} title="Contests"><Swords size={17} /><span>Contests</span></button>
       <button className={active === "paths" ? "user-nav-button active" : "user-nav-button"} onClick={() => navigate("/learning-paths")} title="Learning paths"><Map size={17} /><span>Paths</span></button>
       <button className={active === "daily" ? "user-nav-button active" : "user-nav-button"} onClick={() => navigate("/daily-challenge")} title="Daily challenge"><CalendarDays size={17} /><span>Daily</span></button>
       <button className="logout-button" onClick={logout} title="Logout">

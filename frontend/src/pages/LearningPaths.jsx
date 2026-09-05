@@ -1,6 +1,16 @@
-import {useEffect,useState} from "react";
-import {Link} from "react-router-dom";import {ArrowLeft} from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import api from "../services/api";
-import UserNavigation from "../components/UserNavigation";
+import UserShell from "../components/UserShell";
+import StatusPill from "../components/StatusPill";
+import { EmptyState, ErrorState, LoadingState } from "../components/PageState";
 
-export default function LearningPaths(){const[paths,setPaths]=useState([]),[error,setError]=useState(""),[loading,setLoading]=useState(true);const load=()=>{setLoading(true);api.get("/learning-paths").then(r=>setPaths(r.data||[])).catch(()=>setError("Unable to load learning paths.")).finally(()=>setLoading(false));};useEffect(load,[]);return <div className="user-page"><UserNavigation active="paths"/><main className="user-page-container"><Link className="back-button" to="/dashboard"><ArrowLeft size={18}/>Back to Problems</Link><h1>Learning Paths</h1><p>Follow a structured sequence of published problems.</p>{loading?<p className="loading">Loading learning paths...</p>:error?<div className="dashboard-error"><p>{error}</p><button onClick={load}>Retry</button></div>:!paths.length?<div className="empty-state"><h3>No learning paths available</h3><p>New structured plans will appear here.</p></div>:paths.map(path=><section className="history-card" key={path.id}><h2>{path.title}</h2><p>{path.description}</p>{(path.sections||[]).map(section=><div key={section.id}><h3>{section.title}</h3><ol>{(section.items||[]).map(item=><li key={item.id}><Link to={`/problems/${item.problem.id}`}>{item.problem.title}</Link> <small>{item.problem.difficulty}</small></li>)}</ol></div>)}</section>)}</main></div>}
+export default function LearningPaths() {
+  const [paths, setPaths] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState("");
+  const load = useCallback(() => { setLoading(true); setError(""); api.get("/learning-paths").then((response) => setPaths(response.data || [])).catch(() => setError("The learning curriculum could not be loaded.")).finally(() => setLoading(false)); }, []);
+  useEffect(() => { load(); }, [load]);
+  return <UserShell context="Curriculum"><header className="vx-page-intro"><div><p className="vx-eyebrow">Structured mastery</p><h1>Learning,<br/>with direction.</h1><p>Published curricula organize real Verdixa problems into deliberate sequences. Progress follows your accepted solutions.</p></div><aside className="vx-page-aside">Ordered milestones<br/>Topic progression<br/>Real completion state</aside></header>
+    {error && <ErrorState message={error} onRetry={load}/>} {loading && <LoadingState label="Loading learning paths"/>} {!loading && !error && !paths.length && <EmptyState title="No paths published yet">New curricula will appear here when they are ready.</EmptyState>}
+    {!loading && !error && !!paths.length && <div className="vx-timeline">{paths.map((path) => <article className="vx-track" key={path.id}><span className="vx-section-meta">{(path.sections || []).length} modules</span><h2>{path.title}</h2><p>{path.description}</p>{(path.sections || []).map((section, sectionIndex) => <section className="vx-track-section" key={section.id}><h3>{String(sectionIndex + 1).padStart(2,"0")} / {section.title}</h3><ol>{(section.items || []).map((item) => <li key={item.id}><Link to={`/problems/${item.problem.id}`}>{item.problem.title}</Link><StatusPill value={item.problem.difficulty}/></li>)}</ol></section>)}</article>)}</div>}
+  </UserShell>;
+}

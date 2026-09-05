@@ -38,6 +38,7 @@ public class SubmissionController {
     public ResponseEntity<SubmissionResponse> createSubmission(
             @RequestParam Long problemId,
             @RequestParam String language,
+            @RequestParam(required = false) Long contestId,
             @RequestBody String sourceCode,
             Authentication authentication) {
 
@@ -56,7 +57,8 @@ public class SubmissionController {
                         user.getId(),
                         problemId,
                         language,
-                        sourceCode
+                        sourceCode,
+                        contestId
                 );
 
         // The judge service returns a saved entity. Reload its response graph so

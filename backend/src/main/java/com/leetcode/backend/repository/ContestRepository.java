@@ -1,0 +1,1 @@
+package com.leetcode.backend.repository; import com.leetcode.backend.model.Contest; import org.springframework.data.jpa.repository.JpaRepository; import java.util.*; public interface ContestRepository extends JpaRepository<Contest,Long>{Optional<Contest> findBySlug(String slug); boolean existsBySlug(String slug);}

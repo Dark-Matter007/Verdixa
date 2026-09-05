@@ -16,6 +16,12 @@ import com.leetcode.backend.repository.ProblemRepository;
 import com.leetcode.backend.repository.SubmissionRepository;
 import com.leetcode.backend.repository.TestCaseRepository;
 import com.leetcode.backend.repository.UserRepository;
+import com.leetcode.backend.repository.ContestRepository;
+import com.leetcode.backend.repository.ContestProblemRepository;
+import com.leetcode.backend.repository.ContestRegistrationRepository;
+import com.leetcode.backend.model.Contest;
+import com.leetcode.backend.model.ContestProblem;
+import com.leetcode.backend.model.ContestStatus;
 
 import org.springframework.stereotype.Service;
 
@@ -30,6 +36,9 @@ public class SubmissionService {
     private final TestCaseRepository testCaseRepository;
     private final CodeExecutionService codeExecutionService;
     private final FunctionExecutionService functionExecutionService;
+    private final ContestRepository contestRepository;
+    private final ContestProblemRepository contestProblemRepository;
+    private final ContestRegistrationRepository contestRegistrationRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public SubmissionService(
@@ -38,7 +47,10 @@ public class SubmissionService {
             ProblemRepository problemRepository,
             TestCaseRepository testCaseRepository,
             CodeExecutionService codeExecutionService,
-            FunctionExecutionService functionExecutionService) {
+            FunctionExecutionService functionExecutionService,
+            ContestRepository contestRepository,
+            ContestProblemRepository contestProblemRepository,
+            ContestRegistrationRepository contestRegistrationRepository) {
 
         this.submissionRepository = submissionRepository;
         this.userRepository = userRepository;
@@ -46,6 +58,9 @@ public class SubmissionService {
         this.testCaseRepository = testCaseRepository;
         this.codeExecutionService = codeExecutionService;
         this.functionExecutionService = functionExecutionService;
+        this.contestRepository = contestRepository;
+        this.contestProblemRepository = contestProblemRepository;
+        this.contestRegistrationRepository = contestRegistrationRepository;
     }
 
     // =========================================================
@@ -57,6 +72,12 @@ public class SubmissionService {
             Long problemId,
             String language,
             String sourceCode) {
+        return createSubmission(userId, problemId, language, sourceCode, null);
+    }
+
+    /** Uses the established execution pipeline; the optional contest ID only
+     * supplies authorization and persisted scoring context. */
+    public Submission createSubmission(Long userId, Long problemId, String language, String sourceCode, Long contestId) {
 
         // -----------------------------------------------------
         // FIND USER
@@ -97,6 +118,15 @@ public class SubmissionService {
         submission.setProblem(problem);
         submission.setLanguage(language);
         submission.setSourceCode(sourceCode);
+        if (contestId != null) {
+            Contest contest = contestRepository.findById(contestId).orElseThrow(() -> new RuntimeException("Contest not found."));
+            if (contest.derivedStatus() != ContestStatus.LIVE) throw new IllegalArgumentException("Contest is not live.");
+            if (contestRegistrationRepository.findByContestIdAndUserId(contestId, userId).isEmpty()) throw new IllegalArgumentException("Register for this contest before submitting.");
+            ContestProblem contestProblem = contestProblemRepository.findByContestIdAndProblemId(contestId, problemId)
+                    .orElseThrow(() -> new IllegalArgumentException("Problem is not part of this contest."));
+            submission.setContest(contest);
+            submission.setContestProblem(contestProblem);
+        }
 
         submission.setStatus("RUNNING");
         submission.setOutput("");

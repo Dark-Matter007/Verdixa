@@ -1,0 +1,2 @@
+package com.leetcode.backend.dto; import com.leetcode.backend.model.*; import jakarta.validation.constraints.*; import java.time.*;
+public record ContestRequest(@NotBlank @Size(max=160) String title,@NotBlank @Pattern(regexp="[a-z0-9-]+") @Size(max=180) String slug,String description,String rulesText,@NotNull LocalDateTime startAt,@NotNull LocalDateTime endAt,@NotNull ContestVisibility visibility,String accessCode,ContestStatus status,String accent){}

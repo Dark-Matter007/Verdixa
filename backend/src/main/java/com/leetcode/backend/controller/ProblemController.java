@@ -79,7 +79,7 @@ public class ProblemController {
 
     // Update a problem
     @PutMapping("/{id}")
-    public ResponseEntity<Problem> updateProblem(
+    public ResponseEntity<ProblemDetailResponse> updateProblem(
             @PathVariable Long id,
             @RequestBody Problem problem) {
 

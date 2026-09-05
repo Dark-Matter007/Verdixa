@@ -18,12 +18,16 @@ import UserProfile from "./pages/UserProfile";
 import Leaderboard from "./pages/Leaderboard";
 import LearningPaths from "./pages/LearningPaths";
 import DailyChallenge from "./pages/DailyChallenge";
+import Contests from "./pages/Contests";
+import ContestDetail from "./pages/ContestDetail";
+import AdminContests from "./pages/AdminContests";
 import AdminCollections from "./pages/AdminCollections";
 import AdminUserDetail from "./pages/AdminUserDetail";
 import AdminProblemAnalytics from "./pages/AdminProblemAnalytics";
 import AdminLearningPaths from "./pages/AdminLearningPaths";
 import AdminDailyChallenges from "./pages/AdminDailyChallenges";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Landing from "./pages/Landing";
 
 function App() {
   return (
@@ -31,10 +35,7 @@ function App() {
 
       <Routes>
 
-        <Route
-          path="/"
-          element={<Navigate to="/login" replace />}
-        />
+        <Route path="/" element={<Landing />} />
 
         <Route
           path="/login"
@@ -48,6 +49,7 @@ function App() {
           path="/dashboard"
           element={<ProtectedRoute allowedRoles={["USER"]}><Dashboard /></ProtectedRoute>}
         />
+        <Route path="/problems" element={<ProtectedRoute allowedRoles={["USER"]}><Dashboard /></ProtectedRoute>} />
 
         <Route
           path="/problems/:id"
@@ -63,12 +65,17 @@ function App() {
         <Route path="/lists/:id" element={<ProtectedRoute allowedRoles={["USER"]}><PersonalListDetail /></ProtectedRoute>} />
         <Route path="/collections" element={<ProtectedRoute allowedRoles={["USER"]}><Collections /></ProtectedRoute>} />
         <Route path="/learning-paths" element={<ProtectedRoute allowedRoles={["USER"]}><LearningPaths /></ProtectedRoute>} />
+        <Route path="/paths" element={<ProtectedRoute allowedRoles={["USER"]}><LearningPaths /></ProtectedRoute>} />
         <Route path="/daily-challenge" element={<ProtectedRoute allowedRoles={["USER"]}><DailyChallenge /></ProtectedRoute>} />
+        <Route path="/daily" element={<ProtectedRoute allowedRoles={["USER"]}><DailyChallenge /></ProtectedRoute>} />
+        <Route path="/contests" element={<ProtectedRoute allowedRoles={["USER"]}><Contests /></ProtectedRoute>} />
+        <Route path="/contests/:id" element={<ProtectedRoute allowedRoles={["USER"]}><ContestDetail /></ProtectedRoute>} />
 
         <Route
           path="/profile"
           element={<ProtectedRoute allowedRoles={["USER"]}><UserProfile /></ProtectedRoute>}
         />
+        <Route path="/progress" element={<ProtectedRoute allowedRoles={["USER"]}><UserProfile /></ProtectedRoute>} />
 
         <Route
           path="/leaderboard"
@@ -108,6 +115,7 @@ function App() {
         <Route path="/admin/collections" element={<ProtectedRoute allowedRoles={["ADMIN"]}><AdminCollections /></ProtectedRoute>} />
         <Route path="/admin/learning-paths" element={<ProtectedRoute allowedRoles={["ADMIN"]}><AdminLearningPaths /></ProtectedRoute>} />
         <Route path="/admin/daily-challenges" element={<ProtectedRoute allowedRoles={["ADMIN"]}><AdminDailyChallenges /></ProtectedRoute>} />
+        <Route path="/admin/contests" element={<ProtectedRoute allowedRoles={["ADMIN"]}><AdminContests /></ProtectedRoute>} />
         <Route path="/admin/users/:id" element={<ProtectedRoute allowedRoles={["ADMIN"]}><AdminUserDetail /></ProtectedRoute>} />
         <Route path="/admin/problems/:id/analytics" element={<ProtectedRoute allowedRoles={["ADMIN"]}><AdminProblemAnalytics /></ProtectedRoute>} />
 

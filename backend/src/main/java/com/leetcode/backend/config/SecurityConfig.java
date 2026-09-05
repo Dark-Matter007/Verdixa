@@ -171,7 +171,8 @@ public class SecurityConfig {
                                 HttpMethod.GET,
                                 "/api/users/me",
                                 "/api/users/me/progress",
-                                "/api/users/leaderboard"
+                                "/api/users/leaderboard",
+                                "/api/users/leaderboard/page"
                         ).hasAnyRole("USER", "ADMIN")
 
                         // ==========================
@@ -184,6 +185,37 @@ public class SecurityConfig {
 
                         .requestMatchers(
                                 "/api/admin/**"
+                        ).hasRole("ADMIN")
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/daily-challenges/admin"
+                        ).hasRole("ADMIN")
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/daily-challenges/**"
+                        ).hasRole("ADMIN")
+
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/daily-challenges/**"
+                        ).hasRole("ADMIN")
+
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/api/daily-challenges/**"
+                        ).hasRole("ADMIN")
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/contests",
+                                "/api/contests/*/problems"
+                        ).hasRole("ADMIN")
+
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/contests/**"
                         ).hasRole("ADMIN")
 
                         // ==========================
@@ -210,6 +242,15 @@ public class SecurityConfig {
                                 HttpMethod.GET,
                                 "/api/problems/*/testcases/all"
                         ).hasRole("ADMIN")
+
+                        .requestMatchers(
+                                "/api/problems/*/hints/admin"
+                        ).hasRole("ADMIN")
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/problems/*/hints/*/reveal"
+                        ).hasRole("USER")
 
                         .requestMatchers(
                                 HttpMethod.GET,

@@ -1,47 +1,19 @@
 import { useEffect, useState } from "react";
-import { BarChart3, CheckCircle2, Flame, Send, UserRound } from "lucide-react";
 import api from "../services/api";
-import UserNavigation from "../components/UserNavigation";
+import Avatar from "../components/Avatar";
+import UserShell from "../components/UserShell";
+import { ErrorState, LoadingState } from "../components/PageState";
 
-function UserProfile() {
-  const [progress, setProgress] = useState(null);
-  const [analytics, setAnalytics] = useState(null);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    Promise.all([api.get("/users/me/progress"), api.get("/analytics/me")])
-      .then(([response, analyticsResponse]) => { setProgress(response.data); setAnalytics(analyticsResponse.data); })
-      .catch(() => setError("Unable to load your profile and progress."));
-  }, []);
-
-  return (
-    <div className="user-page">
-      <header className="dashboard-navbar">
-        <div className="dashboard-brand"><div className="dashboard-brand-icon"><BarChart3 size={22} /></div><div><h2>Verdixa</h2><span>Master Algorithms. Build Logic.</span></div></div>
-        <UserNavigation active="profile" />
-      </header>
-      <main className="user-page-container">
-        <div className="page-heading"><div><p className="section-eyebrow">PROFILE</p><h1>Your Progress</h1><p>See the progress you have earned from accepted submissions.</p></div></div>
-        {error && <div className="dashboard-error">{error}</div>}
-        {!progress && !error && <div className="empty-state"><div className="loading-spinner" /><p>Loading progress...</p></div>}
-        {progress && <>
-          <section className="profile-hero">
-            <div className="profile-avatar"><UserRound size={34} /></div>
-            <div><h2>{progress.username}</h2><p>{progress.email}</p><span className="profile-role">{progress.role}</span></div>
-            <div className="completion-ring"><strong>{progress.completionPercentage}%</strong><span>complete</span></div>
-          </section>
-          <section className="profile-stats-grid">
-            <div className="stat-card"><div className="stat-icon"><CheckCircle2 size={22} /></div><div><span>Solved Problems</span><strong>{progress.solvedProblems} / {progress.totalProblems}</strong></div></div>
-            <div className="stat-card"><div className="stat-icon"><Send size={22} /></div><div><span>Submissions</span><strong>{progress.submissionCount}</strong></div></div>
-            <div className="stat-card"><div className="stat-icon"><BarChart3 size={22} /></div><div><span>Acceptance Rate</span><strong>{progress.acceptanceRate}%</strong></div></div>
-            <div className="stat-card"><div className="stat-icon"><Flame size={22} /></div><div><span>Current Streak</span><strong>{progress.currentStreak} days</strong></div></div>
-          </section>
-          <section className="progress-breakdown"><div><h2>Difficulty breakdown</h2><p>Problems solved at each difficulty.</p></div><div className="difficulty-progress"><span className="easy">Easy <strong>{progress.easySolved}</strong></span><span className="medium">Medium <strong>{progress.mediumSolved}</strong></span><span className="hard">Hard <strong>{progress.hardSolved}</strong></span></div></section>
-          {analytics && <section className="progress-breakdown"><h2>365-day activity</h2><p>{analytics.heatmap.activeDays} active days · {analytics.heatmap.currentStreak} day current streak · {analytics.heatmap.longestStreak} day longest streak</p><div className="heatmap" aria-label="365 day activity heatmap">{analytics.heatmap.days.map(day => <span key={day.date} title={`${day.date}: ${day.submissions} submissions`} style={{opacity: day.submissions ? Math.min(1, 0.25 + day.submissions / 5) : 0.1}} />)}</div><h3>Language usage</h3><p>{Object.entries(analytics.languageUsage || {}).map(([language,count]) => `${language}: ${count}`).join(" · ") || "No persisted submissions yet."}</p></section>}
-        </>}
-      </main>
-    </div>
-  );
+export default function UserProfile() {
+  const [progress, setProgress] = useState(null); const [analytics, setAnalytics] = useState(null); const [error, setError] = useState("");
+  useEffect(() => { Promise.all([api.get("/users/me/progress"), api.get("/analytics/me")]).then(([profile, report]) => { setProgress(profile.data); setAnalytics(report.data); }).catch(() => setError("Your performance report could not be assembled.")); }, []);
+  const retry = () => window.location.reload();
+  return <UserShell context="Performance"><header className="vx-page-intro"><div><p className="vx-eyebrow">Developer performance</p><h1>Your work,<br/>made legible.</h1><p>Identity, consistency, and accepted outcomes—assembled from your persisted activity.</p></div>{progress && <div className="vx-profile-identity"><Avatar name={progress.username}/><div><strong>{progress.username}</strong><span>{progress.email}</span><small>{progress.role}</small></div></div>}</header>
+    {error && <ErrorState message={error} onRetry={retry}/>} {!progress && !error && <LoadingState label="Building performance report"/>}
+    {progress && <div className="vx-report-grid"><nav className="vx-report-nav" aria-label="Report sections"><a href="#overview">Overview</a><a href="#difficulty">Difficulty</a><a href="#activity">Activity</a><a href="#languages">Languages</a></nav><div>
+      <section className="vx-report-section" id="overview"><span className="vx-section-meta">Core outcomes</span><h2>Overview</h2><div className="vx-report-metrics"><div className="vx-metric"><span>Solved</span><strong>{progress.solvedProblems}</strong></div><div className="vx-metric"><span>Coverage</span><strong>{progress.completionPercentage}%</strong></div><div className="vx-metric"><span>Acceptance</span><strong>{progress.acceptanceRate}%</strong></div><div className="vx-metric"><span>Streak</span><strong>{progress.currentStreak}d</strong></div></div></section>
+      <section className="vx-report-section" id="difficulty"><span className="vx-section-meta">Difficulty profile</span><h2>Accepted problem mix</h2><div className="vx-difficulty-bars"><div><span>Easy</span><i style={{"--value": `${progress.totalProblems ? progress.easySolved / progress.totalProblems * 100 : 0}%`}}/><strong>{progress.easySolved}</strong></div><div><span>Medium</span><i style={{"--value": `${progress.totalProblems ? progress.mediumSolved / progress.totalProblems * 100 : 0}%`}}/><strong>{progress.mediumSolved}</strong></div><div><span>Hard</span><i style={{"--value": `${progress.totalProblems ? progress.hardSolved / progress.totalProblems * 100 : 0}%`}}/><strong>{progress.hardSolved}</strong></div></div></section>
+      {analytics && <><section className="vx-report-section" id="activity"><span className="vx-section-meta">365 day signal</span><h2>Activity</h2><p className="vx-deck">{analytics.heatmap.activeDays} active days · {analytics.heatmap.currentStreak} day current streak · {analytics.heatmap.longestStreak} day longest streak</p><div className="heatmap" aria-label="365 day submission activity">{analytics.heatmap.days.map((day) => <span key={day.date} title={`${day.date}: ${day.submissions} submissions`} style={{opacity: day.submissions ? Math.min(1,.25 + day.submissions / 5) : .08}}/>)}</div></section><section className="vx-report-section" id="languages"><span className="vx-section-meta">Tooling</span><h2>Language usage</h2><div className="vx-language-list">{Object.entries(analytics.languageUsage || {}).map(([language,count]) => <div key={language}><strong>{language}</strong><span>{count} submissions</span></div>)}{!Object.keys(analytics.languageUsage || {}).length && <p>No persisted submissions yet.</p>}</div></section></>}
+    </div></div>}
+  </UserShell>;
 }
-
-export default UserProfile;

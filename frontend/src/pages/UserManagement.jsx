@@ -1,18 +1,18 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowLeft,
   Search,
   RefreshCw,
   Shield,
   User,
   Users,
-  Code2,
   ChevronDown,
 } from "lucide-react";
 import api from "../services/api";
-import BrandLogo from "../components/BrandLogo";
 import Pagination from "../components/Pagination";
+import AdminShell from "../components/AdminShell";
+import Avatar from "../components/Avatar";
+import { EmptyState, LoadingState } from "../components/PageState";
 
 function UserManagement() {
   const navigate = useNavigate();
@@ -104,71 +104,7 @@ function UserManagement() {
   ).length;
 
   return (
-    <div className="dashboard-layout">
-
-      {/* SIDEBAR */}
-
-      <aside className="sidebar">
-
-        <div className="sidebar-brand">
-
-          <BrandLogo compact />
-
-          <div>
-            <strong>Verdixa</strong>
-            <span>ADMIN</span>
-          </div>
-
-        </div>
-
-        <nav className="sidebar-nav">
-
-          <button
-            className="sidebar-item"
-            onClick={() => navigate("/admin")}
-          >
-            Dashboard
-          </button>
-
-          <button
-            className="sidebar-item"
-            onClick={() => navigate("/admin/problems")}
-          >
-            Problems
-          </button>
-
-          <button className="sidebar-item active">
-            Users
-          </button>
-
-        </nav>
-
-      </aside>
-
-      {/* MAIN */}
-
-      <main className="dashboard-main">
-
-        <header className="dashboard-header">
-
-          <div>
-
-            <button
-              className="back-button"
-              onClick={() => navigate("/admin")}
-            >
-              <ArrowLeft size={18} />
-              Back to Dashboard
-            </button>
-
-            <h1>User Management</h1>
-
-            <p>
-              View users and manage their roles.
-            </p>
-
-          </div>
-
+    <AdminShell title="User Management" description="Review identities, account roles, and user-level performance records." actions={
           <button
             className="primary-button"
             onClick={loadUsers}
@@ -180,8 +116,7 @@ function UserManagement() {
             />
             Refresh
           </button>
-
-        </header>
+    }>
 
         {/* STAT CARDS */}
 
@@ -254,26 +189,15 @@ function UserManagement() {
           )}
 
           {loading ? (
-
-            <div className="loading">
-              Loading users...
-            </div>
+            <LoadingState label="Loading user registry" />
 
           ) : users.length === 0 ? (
 
-            <div className="empty-state">
-
-              <Users size={45} />
-
-              <h3>No users found</h3>
-
-              <p>
+            <EmptyState title="No users found" icon={Users}>
                 {search
                   ? "No users match your search."
                   : "There are no users to display."}
-              </p>
-
-            </div>
+            </EmptyState>
 
           ) : (
 
@@ -303,11 +227,7 @@ function UserManagement() {
 
                   <div className="user-info">
 
-                    <div className="user-avatar">
-                      {user.username
-                        ?.charAt(0)
-                        .toUpperCase()}
-                    </div>
+                    <Avatar name={user.username} size="md" />
 
                     <div>
 
@@ -397,9 +317,7 @@ function UserManagement() {
 
         </section>
 
-      </main>
-
-    </div>
+    </AdminShell>
   );
 }
 

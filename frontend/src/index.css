@@ -4,6 +4,35 @@
   padding: 0;
 }
 
+:root {
+  color-scheme: dark;
+  --vx-page: #090a0c;
+  --vx-canvas: #0d0e11;
+  --vx-panel: #121419;
+  --vx-panel-raised: #181a20;
+  --vx-code: #0a0b0e;
+  --vx-line: #2a2d34;
+  --vx-line-soft: #202228;
+  --vx-ink: #f2f0eb;
+  --vx-ink-soft: #b5b4b0;
+  --vx-ink-muted: #777a80;
+  --vx-crimson: #c91635;
+  --vx-crimson-hover: #e32d4b;
+  --vx-crimson-wash: rgba(201, 22, 53, .13);
+  --vx-success: #63b684;
+  --vx-warning: #d3a755;
+  --vx-error: #e06a78;
+  --vx-info: #78a7c8;
+  --vx-radius-sm: 6px;
+  --vx-radius: 10px;
+  --vx-radius-lg: 14px;
+  --vx-shadow: 0 14px 38px rgba(0, 0, 0, .24);
+  --vx-shadow-raised: 0 22px 65px rgba(0, 0, 0, .38);
+  --vx-fast: 130ms;
+  --vx-normal: 190ms;
+  --vx-focus: 0 0 0 3px rgba(227, 45, 75, .22);
+}
+
 body {
   font-family:
     Inter,
@@ -14,9 +43,17 @@ body {
     "Segoe UI",
     sans-serif;
 
-  background: #080b12;
-  color: #f5f7fb;
+  min-width: 320px;
+  background: var(--vx-page);
+  color: var(--vx-ink);
+  line-height: 1.5;
+  text-rendering: optimizeLegibility;
 }
+
+::selection { background: rgba(201, 22, 53, .35); color: var(--vx-ink); }
+a { color: inherit; }
+button, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--vx-crimson-hover); outline-offset: 2px; box-shadow: var(--vx-focus); }
 
 button,
 input {

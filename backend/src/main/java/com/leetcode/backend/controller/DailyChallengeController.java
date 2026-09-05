@@ -1,25 +1,67 @@
 package com.leetcode.backend.controller;
 
-import com.leetcode.backend.model.*;
-import com.leetcode.backend.repository.*;
+import com.leetcode.backend.dto.DailyChallengeAdminResponse;
+import com.leetcode.backend.dto.DailyChallengeResponse;
+import com.leetcode.backend.model.DailyChallenge;
+import com.leetcode.backend.service.DailyChallengeService;
+import java.util.List;
+import java.util.Map;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import java.time.*;
-import java.util.*;
 
-@RestController @RequestMapping("/api/daily-challenges")
+@RestController
+@RequestMapping("/api/daily-challenges")
 public class DailyChallengeController {
- final DailyChallengeRepository challenges; final ProblemRepository problems; final SubmissionRepository submissions; final UserRepository users;
- DailyChallengeController(DailyChallengeRepository c,ProblemRepository p,SubmissionRepository s,UserRepository u){challenges=c;problems=p;submissions=s;users=u;}
- void admin(Authentication a){if(a.getAuthorities().stream().noneMatch(x->x.getAuthority().equals("ROLE_ADMIN")))throw new org.springframework.security.access.AccessDeniedException("Admin required.");}
- @GetMapping("/today") public Map<String,Object> today(Authentication a){return challenges.findByChallengeDate(LocalDate.now()).map(c->view(c,a)).orElse(Map.of("challenge",null,"completed",false));}
- @GetMapping public List<Map<String,Object>> history(Authentication a){return challenges.findByChallengeDateBetweenOrderByChallengeDateDesc(LocalDate.now().minusDays(365),LocalDate.now()).stream().map(c->view(c,a)).toList();}
- @GetMapping("/summary") public Map<String,Object> summary(Authentication a){User u=users.findByUsername(a.getName()).orElseThrow();List<DailyChallenge> h=challenges.findByChallengeDateBetweenOrderByChallengeDateDesc(LocalDate.now().minusDays(365),LocalDate.now());Set<LocalDate> done=completedDates(u,h);return Map.of("completed",done.size(),"currentStreak",streak(done,LocalDate.now()),"longestStreak",longest(done));}
- @GetMapping("/admin") public List<Map<String,Object>> adminHistory(Authentication a){admin(a);return challenges.findAll().stream().sorted(Comparator.comparing(DailyChallenge::getChallengeDate).reversed()).map(c->{long participants=submissions.findByProblemIdOrderBySubmittedAtDesc(c.getProblem().getId()).stream().filter(s->!s.getSubmittedAt().toLocalDate().isBefore(c.getChallengeDate())).map(s->s.getUser().getId()).distinct().count();long completed=submissions.findByProblemIdOrderBySubmittedAtDesc(c.getProblem().getId()).stream().filter(s->"ACCEPTED".equals(s.getStatus())&&!s.getSubmittedAt().toLocalDate().isBefore(c.getChallengeDate())).map(s->s.getUser().getId()).distinct().count();Map<String,Object> v=new LinkedHashMap<>(view(c,null));v.put("participants",participants);v.put("successfulCompletions",completed);v.put("completionRate",participants==0?0:Math.round(completed*100.0/participants));return v;}).toList();}
- @PostMapping public DailyChallenge schedule(@RequestBody DailyChallenge b,Authentication a){admin(a);if(b.getChallengeDate()==null||b.getProblem()==null||b.getProblem().getId()==null)throw new IllegalArgumentException("Challenge date and problem are required.");if(challenges.findByChallengeDate(b.getChallengeDate()).isPresent())throw new IllegalArgumentException("A challenge already exists for this date.");Problem p=problems.findById(b.getProblem().getId()).orElseThrow();if(!p.isActive())throw new IllegalArgumentException("Only published problems can be scheduled.");b.setProblem(p);return challenges.save(b);}
- @PutMapping("/{id}") public DailyChallenge updateFuture(@PathVariable Long id,@RequestBody DailyChallenge b,Authentication a){admin(a);DailyChallenge c=challenges.findById(id).orElseThrow();if(!c.getChallengeDate().isAfter(LocalDate.now()))throw new IllegalArgumentException("Historical challenges are immutable.");if(b.getChallengeDate()!=null&&!b.getChallengeDate().equals(c.getChallengeDate())&&challenges.findByChallengeDate(b.getChallengeDate()).isPresent())throw new IllegalArgumentException("A challenge already exists for this date.");if(b.getChallengeDate()!=null)c.setChallengeDate(b.getChallengeDate());if(b.getProblem()!=null&&b.getProblem().getId()!=null){Problem p=problems.findById(b.getProblem().getId()).orElseThrow();if(!p.isActive())throw new IllegalArgumentException("Only published problems can be scheduled.");c.setProblem(p);}return challenges.save(c);}
- @DeleteMapping("/{id}") public void deleteFuture(@PathVariable Long id,Authentication a){admin(a);DailyChallenge c=challenges.findById(id).orElseThrow();if(!c.getChallengeDate().isAfter(LocalDate.now()))throw new IllegalArgumentException("Historical challenges are immutable.");challenges.delete(c);}
- private Map<String,Object> view(DailyChallenge c,Authentication a){Map<String,Object> v=new LinkedHashMap<>();v.put("id",c.getId());v.put("challengeDate",c.getChallengeDate());v.put("problem",c.getProblem());boolean done=false;if(a!=null){User u=users.findByUsername(a.getName()).orElse(null);done=u!=null&&submissions.findByUserIdAndProblemIdOrderBySubmittedAtDesc(u.getId(),c.getProblem().getId()).stream().anyMatch(s->"ACCEPTED".equals(s.getStatus())&&!s.getSubmittedAt().toLocalDate().isBefore(c.getChallengeDate()));}v.put("completed",done);return v;}
- private Set<LocalDate> completedDates(User u,List<DailyChallenge> list){Set<LocalDate> result=new HashSet<>();for(DailyChallenge c:list)if(submissions.findByUserIdAndProblemIdOrderBySubmittedAtDesc(u.getId(),c.getProblem().getId()).stream().anyMatch(s->"ACCEPTED".equals(s.getStatus())&&!s.getSubmittedAt().toLocalDate().isBefore(c.getChallengeDate())))result.add(c.getChallengeDate());return result;}
- private int streak(Set<LocalDate> dates,LocalDate day){if(!dates.contains(day))day=day.minusDays(1);int n=0;while(dates.contains(day)){n++;day=day.minusDays(1);}return n;} private int longest(Set<LocalDate> dates){int best=0;for(LocalDate d:dates){int n=1;for(LocalDate x=d.minusDays(1);dates.contains(x);x=x.minusDays(1))n++;best=Math.max(best,n);}return best;}
+    private final DailyChallengeService service;
+
+    public DailyChallengeController(DailyChallengeService service) { this.service = service; }
+
+    @GetMapping("/today")
+    public ResponseEntity<DailyChallengeResponse> today(Authentication authentication) {
+        return service.today(authentication.getName()).map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    @GetMapping
+    public List<DailyChallengeResponse> history(Authentication authentication) {
+        return service.history(authentication.getName());
+    }
+
+    @GetMapping("/summary")
+    public Map<String, Integer> summary(Authentication authentication) {
+        return service.summary(authentication.getName());
+    }
+
+    @GetMapping("/admin")
+    public List<DailyChallengeAdminResponse> adminHistory(Authentication authentication) {
+        requireAdmin(authentication);
+        return service.adminHistory();
+    }
+
+    @PostMapping
+    public DailyChallengeResponse schedule(@RequestBody DailyChallenge challenge, Authentication authentication) {
+        requireAdmin(authentication);
+        return service.schedule(challenge);
+    }
+
+    @PutMapping("/{id}")
+    public DailyChallengeResponse updateFuture(@PathVariable Long id, @RequestBody DailyChallenge challenge,
+            Authentication authentication) {
+        requireAdmin(authentication);
+        return service.updateFuture(id, challenge);
+    }
+
+    @DeleteMapping("/{id}")
+    public void deleteFuture(@PathVariable Long id, Authentication authentication) {
+        requireAdmin(authentication);
+        service.deleteFuture(id);
+    }
+
+    private void requireAdmin(Authentication authentication) {
+        if (authentication.getAuthorities().stream().noneMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()))) {
+            throw new AccessDeniedException("Admin required.");
+        }
+    }
 }

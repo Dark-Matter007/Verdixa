@@ -13,6 +13,7 @@ import com.leetcode.backend.repository.TestCaseRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -32,7 +33,7 @@ public class LegacyProblemMetadataRepair {
         this.problems = problems; this.tests = tests; this.transaction = new TransactionTemplate(transactionManager);
     }
 
-    @Bean CommandLineRunner repairLegacyFunctionFixtures() { return args -> transaction.executeWithoutResult(status -> repair()); }
+    @Bean @Order(100) CommandLineRunner repairLegacyFunctionFixtures() { return args -> transaction.executeWithoutResult(status -> repair()); }
 
     public void repair() {
         problems.findAll().forEach(problem -> {

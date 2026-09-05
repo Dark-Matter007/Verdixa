@@ -1,0 +1,1 @@
+package com.leetcode.backend.dto; import java.time.*; import java.util.*; public record ContestStandingResponse(int rank,Long userId,String username,int solved,int penalty,LocalDateTime lastAcceptedAt,Map<Long,String> problems){}

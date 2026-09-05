@@ -13,6 +13,8 @@ public interface ProblemRepository extends JpaRepository<Problem, Long> {
 
     List<Problem> findByActiveTrue();
 
+    List<Problem> findByActiveTrueOrderByIdAsc();
+
     long countByActiveTrue();
 
     long countByActiveFalse();

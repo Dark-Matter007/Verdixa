@@ -54,12 +54,11 @@ public class ProblemService {
     /** Materialize solver data inside the persistence transaction; never serialize a managed entity. */
     @Transactional(readOnly = true)
     public ProblemDetailResponse getProblemDetail(Long id, boolean includeInactive) {
-        Problem problem = problemRepository.findById(id)
+        Problem problem = problemRepository.findWithFunctionSignatureById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Problem not found."));
         if (!includeInactive && !problem.isActive()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Problem not found.");
         }
-        if (problem.getFunctionSignature() != null) problem.getFunctionSignature().getParameters().size();
         return ProblemDetailResponse.from(problem);
     }
 
@@ -71,9 +70,11 @@ public class ProblemService {
         return problemRepository.save(problem);
     }
 
-    public Problem updateProblem(Long id, Problem updatedProblem) {
+    @Transactional
+    public ProblemDetailResponse updateProblem(Long id, Problem updatedProblem) {
         validateProblem(updatedProblem);
-        Problem existingProblem = getProblemById(id);
+        Problem existingProblem = problemRepository.findWithFunctionSignatureById(id)
+                .orElseThrow(() -> new RuntimeException("Problem not found with id: " + id));
 
         existingProblem.setTitle(updatedProblem.getTitle());
         existingProblem.setDescription(updatedProblem.getDescription());
@@ -85,11 +86,13 @@ public class ProblemService {
         existingProblem.setTags(updatedProblem.getTags());
         existingProblem.setStarterCode(updatedProblem.getStarterCode());
         existingProblem.setExecutionMode(updatedProblem.getExecutionMode());
-        existingProblem.setFunctionSignature(updatedProblem.getFunctionSignature());
+        mergeFunctionSignature(existingProblem, updatedProblem);
         if (!existingProblem.isActive() && updatedProblem.isActive()) validatePublishable(id);
         existingProblem.setActive(updatedProblem.isActive());
 
-        return problemRepository.save(existingProblem);
+        problemRepository.save(existingProblem);
+        problemRepository.flush();
+        return ProblemDetailResponse.from(existingProblem);
     }
 
     public void deleteProblem(Long id) {
@@ -134,5 +137,34 @@ public class ProblemService {
         if (testCaseRepository.countByProblemIdAndHiddenTrue(problemId) != 4) {
             throw new IllegalArgumentException("A published problem requires exactly 4 hidden official test cases.");
         }
+    }
+
+    private void mergeFunctionSignature(Problem existing, Problem update) {
+        if (update.getExecutionMode() != com.leetcode.backend.model.ExecutionMode.FUNCTION) {
+            existing.setFunctionSignature(null);
+            return;
+        }
+        var incoming = update.getFunctionSignature();
+        var signature = existing.getFunctionSignature();
+        if (signature == null) {
+            signature = new com.leetcode.backend.model.FunctionSignature();
+            existing.setFunctionSignature(signature);
+        }
+        signature.setFunctionName(incoming.getFunctionName());
+        signature.setReturnType(incoming.getReturnType());
+        var current = signature.getParameters();
+        var requested = incoming.getParameters();
+        for (int index = 0; index < requested.size(); index++) {
+            com.leetcode.backend.model.FunctionParameter target;
+            if (index < current.size()) target = current.get(index);
+            else {
+                target = new com.leetcode.backend.model.FunctionParameter();
+                current.add(target);
+            }
+            target.setName(requested.get(index).getName());
+            target.setType(requested.get(index).getType());
+            target.setParameterOrder(index);
+        }
+        while (current.size() > requested.size()) current.remove(current.size() - 1);
     }
 }
