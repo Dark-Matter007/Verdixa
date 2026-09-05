@@ -11,7 +11,15 @@
 
 **A full-stack programming assessment platform with multi-language execution, dual-mode judging, and role-based administration.**
 
-Verdixa lets users discover and solve programming problems in a Monaco-powered editor, run custom cases, submit against official tests, and review progress. Administrators manage problems, test cases, users, collections, learning paths, daily challenges, and platform analytics from the same application.
+Verdixa lets users discover and solve programming problems in a Monaco-powered editor, run custom cases, submit against official tests, and review progress. Administrators manage problems, test cases, users, contests, collections, learning paths, daily challenges, and safe aggregate analytics from the same application.
+
+## Product Experience
+
+The frontend uses a focused Verdixa visual system: near-black work surfaces, restrained crimson emphasis, fine structural dividers, and compact technical metadata. The admin contest, user-analytics, and problem-analytics views share this control-room language so the reporting and management workflows feel like one product.
+
+- **User analytics** presents completion progress, acceptance signals, language mix, streaks, and recent submissions.
+- **Problem analytics** presents aggregate submission and acceptance signals, verdict and language distributions, and test-suite readiness without revealing hidden test inputs or expected output.
+- **Contest administration** provides timed contest setup, visibility control, problem selection, and scoring configuration.
 
 ## Overview
 
@@ -33,14 +41,14 @@ Users authenticate with JWTs, browse the problem library, write a Java, C++, or 
 - Custom **Run** workflow for STDIN and FUNCTION problems.
 - Official **Submit** workflow with public and hidden test cases.
 - Submission history, detail/replay, private notes, bookmarks, and personal problem lists.
-- Editorials, curated collections, learning paths, daily challenges, leaderboard, and activity heatmap.
+- Editorials, curated collections, learning paths, daily challenges, contests, leaderboard, and activity heatmap.
 
 ### Admin workspace
 
-- Platform statistics, activity, user analytics, and problem analytics.
+- Platform statistics plus safe user and problem analytics dashboards.
 - Create, edit, activate/deactivate, and delete problems.
 - Test-case management, including hidden cases and FUNCTION signatures.
-- User and role management, collections, learning paths, daily challenges, and editorials.
+- User and role management, contests, collections, learning paths, daily challenges, and editorials.
 
 ## Judge Architecture
 
@@ -126,6 +134,7 @@ Verdixa/
 - **ProblemList**, **ProblemBookmark**, and **ProblemNote** support personal organization.
 - **CuratedCollection**, **LearningPath**, and **DailyChallenge** organize published learning content around problems.
 - **Editorial** stores structured explanations and language-specific reference solutions for a problem.
+- **Contest**, **ContestProblem**, and **ContestRegistration** model timed competition setup, problem assignment, scoring, visibility, and participant registration.
 
 ## Authentication and Authorization
 
@@ -140,6 +149,7 @@ Verdixa uses stateless Spring Security with Bearer JWTs. Tokens include the auth
 
 - JWT signing secrets and database credentials are environment-driven; no signing key is committed.
 - DTOs and dedicated response projections keep passwords and hidden-test payloads out of standard user responses.
+- Administrative analytics are aggregate-only: user reports exclude credentials and private notes; problem reports never expose hidden inputs, expected outputs, or function arguments.
 - Direct execution endpoints limit source to 200,000 characters and custom input to 64,000 characters.
 - The executor uses timeouts and temporary-directory cleanup.
 
@@ -269,8 +279,8 @@ All application APIs are under `/api`.
 | Test cases | `/problems/{problemId}/testcases` |
 | Execution | `/execution-test/run`, `/execution-test/java`, `/execution-test/cpp`, `/execution-test/python` |
 | Submissions | `/submissions?problemId=…&language=…`, `/submissions/{id}` |
-| Learning content | `/bookmarks`, `/lists`, `/collections`, `/learning-paths`, `/daily-challenges` |
-| Administration | `/admin/**`, `/users/**`, administrative problem and test-case routes |
+| Learning and contests | `/bookmarks`, `/lists`, `/collections`, `/learning-paths`, `/daily-challenges`, `/contests` |
+| Administration | `/admin/**`, `/users/**`, `/admin/users/{id}/analytics`, `/admin/problems/{id}/analytics`, administrative contest/problem/test-case routes |
 
 Refer to the controller classes under `backend/src/main/java/com/leetcode/backend/controller/` for request and response details.
 
@@ -283,7 +293,7 @@ Refer to the controller classes under `backend/src/main/java/com/leetcode/backen
 5. Submit the solution.
 6. Verdixa evaluates official public and hidden test cases.
 7. Review the verdict, per-case summary, timing, and persisted submission history.
-8. Track progress through the profile, leaderboard, daily challenge, and learning content.
+8. Track progress through the profile, leaderboard, daily challenge, contests, and learning content.
 
 For a FUNCTION problem, a Python submission can be limited to the requested function:
 
@@ -355,7 +365,7 @@ See [benchmarks/README.md](benchmarks/README.md). Run `powershell -ExecutionPoli
 - Queue-backed and horizontally scalable judging.
 - Additional languages and richer FUNCTION types.
 - Production CORS/origin configuration, rate limiting, and observability.
-- Real-time result delivery, contest workflows, and expanded analytics.
+- Real-time result delivery and expanded analytics.
 
 ## Screenshots
 
