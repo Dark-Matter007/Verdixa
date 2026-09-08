@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowRight, BookOpen, Braces, Check, ChevronRight, Code2, Crown, Gauge, GitBranch, LockKeyhole, Play, ShieldCheck, Sparkles, TerminalSquare, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
 import BrandLogo from "../components/BrandLogo";
+import ThemeToggle from "../components/ThemeToggle";
 import "./Landing.css";
 
 const languageSamples = {
@@ -21,7 +22,7 @@ export default function Landing() {
     <header className="landing-nav">
       <Link className="landing-brand" to="/" aria-label="Verdixa home"><BrandLogo compact/><strong>Verdixa</strong><small>CODE SYSTEM</small></Link>
       <nav aria-label="Landing navigation"><a href="#platform">Platform</a><a href="#judge">Judge</a><a href="#contests">Contests</a><a href="#learn">Learn</a></nav>
-      <div className="landing-nav-actions"><Link to="/login">Sign in</Link><Link className="landing-nav-cta" to="/register">Start coding <ArrowRight size={14}/></Link></div>
+      <div className="landing-nav-actions"><ThemeToggle /><Link to="/login">Sign in</Link><Link className="landing-nav-cta" to="/register">Start coding <ArrowRight size={14}/></Link></div>
     </header>
 
     <div id="main-content" className="landing-main">

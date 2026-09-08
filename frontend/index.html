@@ -4,12 +4,22 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/src/assets/verdixa-logo-transparent.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#070707" />
+    <meta name="theme-color" content="#faf9f7" />
     <meta name="description" content="Verdixa professional coding platform" />
     <title>Verdixa | Coding Platform</title>
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      /* Set the product default before React starts so navigation never flashes dark. */
+      (function () {
+        var saved = localStorage.getItem("verdixa_theme");
+        var theme = String(saved || "light").toLowerCase() === "dark" ? "dark" : "light";
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+        document.querySelector('meta[name="theme-color"]').setAttribute("content", theme === "dark" ? "#090a0c" : "#faf9f7");
+      }());
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

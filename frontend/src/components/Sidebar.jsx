@@ -16,7 +16,7 @@ const links = [
 export default function Sidebar() {
   const navigate = useNavigate();
   const logout = () => {
-    ["algosphere_token", "algosphere_username", "algosphere_role"].forEach((key) => localStorage.removeItem(key));
+    ["algosphere_token", "algosphere_username", "algosphere_role"].forEach((key) => localStorage.removeItem(key)); window.dispatchEvent(new Event("verdixa-signed-out"));
     navigate("/login");
   };
 

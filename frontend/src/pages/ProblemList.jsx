@@ -7,6 +7,7 @@ import {
   Trash2,
   ListChecks,
   Code2,
+  BarChart3,
 } from "lucide-react";
 import api from "../services/api";
 import Pagination from "../components/Pagination";
@@ -76,9 +77,10 @@ function ProblemList() {
             Add Problem
           </button>
     }>
-        <section className="dashboard-section">
+        <section className="dashboard-section vx-admin-problems">
 
-          <div className="search-container">
+          <div className="vx-admin-problems-toolbar">
+          <div className="search-container vx-admin-problems-search">
 
             <Search size={20} />
 
@@ -89,6 +91,8 @@ function ProblemList() {
               onChange={(e) => {setSearch(e.target.value);setPage(0);}}
             />
 
+          </div>
+          {!loading && <p className="vx-admin-problems-count" aria-live="polite">{pagination?.totalElements ?? filteredProblems.length} problem{(pagination?.totalElements ?? filteredProblems.length) === 1 ? "" : "s"} in catalogue</p>}
           </div>
 
           {error && <div className="error-message">{error}</div>}
@@ -109,34 +113,34 @@ function ProblemList() {
             </EmptyState>
           ) : (
 
-            <div className="problem-table">
+            <div className="problem-table" role="table" aria-label="Problem catalogue">
 
-              <div className="table-header">
-                <span>Problem</span>
-                <span>Difficulty</span>
-                <span>Status</span>
-                <span>Actions</span>
+              <div className="table-header" role="row">
+                <span role="columnheader">Problem</span>
+                <span role="columnheader">Difficulty</span>
+                <span role="columnheader">Status</span>
+                <span role="columnheader">Actions</span>
               </div>
 
               {filteredProblems.map((problem) => (
 
-                <div className="table-row" key={problem.id}>
+                <article className="table-row vx-admin-problem-row" role="row" key={problem.id}>
 
-                  <div>
-                    <strong>{problem.title}<small className="editorial-status">Editorial: {editorialStatuses[problem.id] || "Unavailable"}</small></strong>
-
-                    <small>
-                      ID: #{problem.id}
-                    </small>
+                  <div className="vx-admin-problem-identity" role="cell">
+                    <strong>{problem.title}</strong>
+                    <div className="vx-admin-problem-meta">
+                      <span>ID #{problem.id}</span>
+                      <span className="editorial-status">Editorial: {editorialStatuses[problem.id] || "Unavailable"}</span>
+                    </div>
                   </div>
 
-                  <span
+                  <div role="cell" className="vx-admin-problem-difficulty"><span
                     className={`difficulty ${problem.difficulty?.toLowerCase()}`}
                   >
                     {problem.difficulty}
-                  </span>
+                  </span></div>
 
-                  <span
+                  <div role="cell"><span
                     className={
                       problem.active
                         ? "status active"
@@ -144,19 +148,25 @@ function ProblemList() {
                     }
                   >
                     {problem.active ? "Active" : "Inactive"}
-                  </span>
+                  </span></div>
 
-                  <div className="action-buttons">
+                  <div className="action-buttons" role="cell">
 
                     <button
+                      type="button"
+                      className="vx-problem-action"
                       title="Manage test cases"
+                      aria-label={`Manage test cases for ${problem.title}`}
                       onClick={() => navigate(`/admin/problems/${problem.id}/testcases`)}
                     >
                       <ListChecks size={17} />
                     </button>
 
                     <button
+                      type="button"
+                      className="vx-problem-action"
                       title="Edit"
+                      aria-label={`Edit ${problem.title}`}
                       onClick={() =>
                         navigate(`/admin/problems/edit/${problem.id}`)
                       }
@@ -164,10 +174,13 @@ function ProblemList() {
                       <Edit size={17} />
                     </button>
 
-                    <button title="Analytics" onClick={() => navigate(`/admin/problems/${problem.id}/analytics`)}>Analytics</button>
+                    <button type="button" className="vx-problem-action" title="Analytics" aria-label={`View analytics for ${problem.title}`} onClick={() => navigate(`/admin/problems/${problem.id}/analytics`)}><BarChart3 size={17} /></button>
 
                     <button
+                      type="button"
+                      className="vx-problem-action vx-problem-action--delete"
                       title="Delete"
+                      aria-label={`Delete ${problem.title}`}
                       onClick={() => deleteProblem(problem.id)}
                     >
                       <Trash2 size={17} />
@@ -175,7 +188,7 @@ function ProblemList() {
 
                   </div>
 
-                </div>
+                </article>
 
               ))}
 

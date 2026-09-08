@@ -44,7 +44,11 @@ export default function AdminContests() {
     try {
       const created = await api.post("/contests", form);
       const contestId = created.data.id;
-      await Promise.all(Object.entries(selection).map(([problemId, points]) => api.post(`/contests/${contestId}/problems`, { problemId:Number(problemId), points:Number(points) || 100 })));
+      // Preserve the selected order. The API assigns the next display order when
+      // each problem is added, so concurrent requests can otherwise collide.
+      for (const [problemId, points] of Object.entries(selection)) {
+        await api.post(`/contests/${contestId}/problems`, { problemId:Number(problemId), points:Number(points) || 100 });
+      }
       setForm(empty);
       setSelection({});
       await load();

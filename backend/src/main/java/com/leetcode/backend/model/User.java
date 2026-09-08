@@ -27,6 +27,10 @@ public class User {
     @Column(nullable = false, length = 20)
     private Role role = Role.USER;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 10, columnDefinition = "varchar(10) default 'LIGHT'")
+    private ThemePreference theme = ThemePreference.LIGHT;
+
     public User() {
     }
 
@@ -72,4 +76,8 @@ public class User {
     public void setRole(Role role) {
         this.role = role;
     }
+
+    public ThemePreference getTheme() { return theme; }
+
+    public void setTheme(ThemePreference theme) { this.theme = theme; }
 }

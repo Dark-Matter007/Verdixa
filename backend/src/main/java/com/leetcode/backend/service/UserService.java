@@ -7,6 +7,7 @@ import com.leetcode.backend.model.Problem;
 import com.leetcode.backend.model.Role;
 import com.leetcode.backend.model.Submission;
 import com.leetcode.backend.model.User;
+import com.leetcode.backend.model.ThemePreference;
 import com.leetcode.backend.repository.ProblemRepository;
 import com.leetcode.backend.repository.SubmissionRepository;
 import com.leetcode.backend.repository.UserRepository;
@@ -86,6 +87,20 @@ public class UserService {
         User updatedUser = userRepository.save(user);
 
         return UserResponse.fromUser(updatedUser);
+    }
+
+    @Transactional(readOnly = true)
+    public UserResponse getCurrentUser(String username) {
+        return UserResponse.fromUser(userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found")));
+    }
+
+    @Transactional
+    public UserResponse updateTheme(String username, ThemePreference theme) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setTheme(theme);
+        return UserResponse.fromUser(userRepository.save(user));
     }
 
     @Transactional(readOnly = true)

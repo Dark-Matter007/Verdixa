@@ -1,4 +1,5 @@
 import Sidebar from "./Sidebar";
+import UserAccountMenu from "./UserAccountMenu";
 
 export default function AdminShell({ eyebrow = "Administration", title, description, actions, children }) {
   return <div className="dashboard-layout vx-admin-shell">
@@ -10,7 +11,7 @@ export default function AdminShell({ eyebrow = "Administration", title, descript
           <h1>{title}</h1>
           {description && <p>{description}</p>}
         </div>
-        {actions && <div className="vx-admin-head-actions">{actions}</div>}
+        <div className="vx-admin-head-actions">{actions}<UserAccountMenu /></div>
       </header>
       {children}
     </main>

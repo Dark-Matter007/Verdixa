@@ -179,6 +179,11 @@ public class SecurityConfig {
                                 "/api/users/leaderboard/page"
                         ).hasAnyRole("USER", "ADMIN")
 
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/api/users/me/theme"
+                        ).hasAnyRole("USER", "ADMIN")
+
                         // ==========================
                         // ADMIN USER MANAGEMENT
                         // ==========================

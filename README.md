@@ -15,11 +15,20 @@ Verdixa lets users discover and solve programming problems in a Monaco-powered e
 
 ## Product Experience
 
-The frontend uses a focused Verdixa visual system: near-black work surfaces, restrained crimson emphasis, fine structural dividers, and compact technical metadata. The admin contest, user-analytics, and problem-analytics views share this control-room language so the reporting and management workflows feel like one product.
+The frontend uses a focused Verdixa visual system with a clean light workspace as the default and the original near-black workspace available on demand. Both themes use restrained crimson emphasis, fine structural dividers, and compact technical metadata. Monaco follows the selected theme, so the editor remains consistent with the surrounding workspace. The admin contest, user-analytics, and problem-analytics views share this control-room language so the reporting and management workflows feel like one product.
 
 - **User analytics** presents completion progress, acceptance signals, language mix, streaks, and recent submissions.
 - **Problem analytics** presents aggregate submission and acceptance signals, verdict and language distributions, and test-suite readiness without revealing hidden test inputs or expected output.
 - **Contest administration** provides timed contest setup, visibility control, problem selection, and scoring configuration.
+
+### Recent interface and workflow updates
+
+- Added a light/dark theme switcher to authenticated workspaces. The current selection is applied before rendering and retained locally; the API and user model also support a `LIGHT`/`DARK` theme preference.
+- Redesigned the user workspace around a persistent navigation rail, compact account menu, and responsive workspace header.
+- Updated the solver’s light surface and Monaco theme. Locked-hint availability notices are crimson in light mode, while dark mode retains the original yellow status color.
+- Refined the administrative problem catalogue with accessible table semantics, count feedback, compact metadata, and icon-only actions with descriptive labels.
+- Added access-code entry when joining private contests and made contest-problem creation sequential to preserve the selected display order.
+- Moved certificate previews into a document-level portal so the modal is reliably above surrounding page layout.
 
 ## Overview
 
@@ -36,12 +45,14 @@ Users authenticate with JWTs, browse the problem library, write a Java, C++, or 
 ### User workspace
 
 - Registration, login, JWT-protected routes, and profile/progress analytics.
+- Light and dark workspace themes, plus a shared account menu for navigation and sign-out.
 - Searchable problem library with difficulty, topic, status, bookmark, and sorting filters.
 - Monaco editor with Java, C++, and Python starter code.
 - Custom **Run** workflow for STDIN and FUNCTION problems.
 - Official **Submit** workflow with public and hidden test cases.
 - Submission history, detail/replay, private notes, bookmarks, and personal problem lists.
-- Editorials, curated collections, learning paths, daily challenges, contests, leaderboard, and activity heatmap.
+- Progressive locked/revealed hints, editorials, curated collections, learning paths, daily challenges, contests, leaderboard, and activity heatmap.
+- Private-contest registration with an access code, certificate milestone previews, and PDF downloads for earned certificates.
 
 ### Admin workspace
 
@@ -127,7 +138,7 @@ Verdixa/
 
 ## Data Model
 
-- **User** owns submissions, personal lists, notes, and bookmarks; roles are `USER` or `ADMIN`.
+- **User** owns submissions, personal lists, notes, and bookmarks; roles are `USER` or `ADMIN`, and each account has a `LIGHT` or `DARK` theme preference.
 - **Problem** stores statement metadata, difficulty, tags, starter code, execution mode, and optional function signature.
 - **TestCase** belongs to a problem and can be public or hidden; FUNCTION cases carry arguments in parameter order.
 - **Submission** links a user and problem to source code, language, verdict, timing, test counts, and timestamps.
@@ -274,7 +285,7 @@ All application APIs are under `/api`.
 | Area | Representative routes |
 | --- | --- |
 | Authentication | `/auth/register`, `/auth/login` |
-| Users and progress | `/users/me`, `/users/me/progress`, `/users/leaderboard` |
+| Users and progress | `/users/me`, `PUT /users/me/theme`, `/users/me/progress`, `/users/leaderboard` |
 | Problems | `/problems/library`, `/problems/{id}`, `/problems/{id}/navigation` |
 | Test cases | `/problems/{problemId}/testcases` |
 | Execution | `/execution-test/run`, `/execution-test/java`, `/execution-test/cpp`, `/execution-test/python` |

@@ -1,6 +1,6 @@
 import EditorialPanel from "../components/EditorialPanel";
 import SubmissionMilestone from "../components/SubmissionMilestone";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -18,6 +18,8 @@ import {
 import Editor from "@monaco-editor/react";
 import api from "../services/api";
 import BrandLogo from "../components/BrandLogo";
+import UserAccountMenu from "../components/UserAccountMenu";
+import { ThemeContext } from "../components/ThemeProvider";
 
 const EMPTY_HINTS = { total: 0, unlocked: 0, attempts: 0, unlockAt: 3, available: false, hints: [] };
 
@@ -26,6 +28,7 @@ function ProblemSolver() {
   const navigate = useNavigate();
   const location = useLocation();
   const contestId = new URLSearchParams(location.search).get("contest");
+  const { theme } = useContext(ThemeContext);
 
   const [problem, setProblem] = useState(null);
   const [sourceCode, setSourceCode] = useState("");
@@ -339,6 +342,7 @@ function ProblemSolver() {
             <option value="python">Python</option>
           </select>
         </div>
+        <UserAccountMenu />
 
       </header>
 
@@ -374,7 +378,7 @@ function ProblemSolver() {
 
             <div className="problem-tabs" role="tablist"><button role="tab" aria-selected={activePanel === "description"} className={activePanel === "description" ? "active" : ""} onClick={() => setActivePanel("description")}>Description</button><button role="tab" aria-selected={activePanel === "hints"} className={activePanel === "hints" ? "active" : ""} onClick={() => setActivePanel("hints")}>Hints {hintData.total ? `(${hintData.unlocked}/${hintData.total})` : ""}</button><button role="tab" aria-selected={activePanel === "editorial"} className={activePanel === "editorial" ? "active" : ""} onClick={() => setActivePanel("editorial")}>Editorial</button><button role="tab" aria-selected={activePanel === "notes"} className={activePanel === "notes" ? "active" : ""} onClick={() => setActivePanel("notes")}>My Notes</button></div>
 
-            {activePanel === "hints" && <div className="editorial-panel hints-panel"><p className="hint-summary">{hintData.total ? `${hintData.unlocked} of ${hintData.total} hints revealed · ${hintData.attempts} submission attempt${hintData.attempts === 1 ? "" : "s"} on this problem.` : "No hints are configured for this problem."}</p>{hintData.hints.map((hint, index) => <article className={`hint-card ${hint.revealed ? "revealed" : hint.available ? "available" : "locked"}`} key={hint.id}><h3>{hint.revealed ? hint.title : `Hint ${index + 1}`}</h3>{hint.revealed ? <><p>{hint.content}</p>{hint.penaltyPoints > 0 && <small>Penalty applied: {hint.penaltyPoints} points</small>}</> : hint.available ? <><p>Available to reveal{hint.penaltyPoints > 0 ? ` · ${hint.penaltyPoints}-point penalty` : ""}.</p><button className="secondary-button" onClick={() => hint.penaltyPoints > 0 ? setPendingHint(hint) : revealHint(hint)}>Reveal hint</button></> : <><p>{Math.min(hintData.attempts, hint.attemptsRequired)} of {hint.attemptsRequired} attempts completed</p><small>Available after {hint.attemptsRemaining} more attempt{hint.attemptsRemaining === 1 ? "" : "s"}.</small></>}</article>)}{pendingHint && <div className="hint-confirm" role="dialog" aria-modal="true" aria-label="Confirm hint reveal"><p>Revealing this hint applies a {pendingHint.penaltyPoints}-point penalty. Continue?</p><button className="secondary-button" onClick={() => setPendingHint(null)}>Cancel</button><button className="submit-button" onClick={() => revealHint(pendingHint)}>Reveal hint</button></div>}</div>}
+            {activePanel === "hints" && <div className="editorial-panel hints-panel"><p className="hint-summary">{hintData.total ? `${hintData.unlocked} of ${hintData.total} hints revealed · ${hintData.attempts} submission attempt${hintData.attempts === 1 ? "" : "s"} on this problem.` : "No hints are configured for this problem."}</p>{hintData.hints.map((hint, index) => <article className={`hint-card ${hint.revealed ? "revealed" : hint.available ? "available" : "locked"}`} key={hint.id}><h3>{hint.revealed ? hint.title : `Hint ${index + 1}`}</h3>{hint.revealed ? <><p>{hint.content}</p>{hint.penaltyPoints > 0 && <small>Penalty applied: {hint.penaltyPoints} points</small>}</> : hint.available ? <><p>Available to reveal{hint.penaltyPoints > 0 ? ` · ${hint.penaltyPoints}-point penalty` : ""}.</p><button className="secondary-button" onClick={() => hint.penaltyPoints > 0 ? setPendingHint(hint) : revealHint(hint)}>Reveal hint</button></> : <><p>{Math.min(hintData.attempts, hint.attemptsRequired)} of {hint.attemptsRequired} attempts completed</p><small className="hint-unlock-status">Available after {hint.attemptsRemaining} more attempt{hint.attemptsRemaining === 1 ? "" : "s"}.</small></>}</article>)}{pendingHint && <div className="hint-confirm" role="dialog" aria-modal="true" aria-label="Confirm hint reveal"><p>Revealing this hint applies a {pendingHint.penaltyPoints}-point penalty. Continue?</p><button className="secondary-button" onClick={() => setPendingHint(null)}>Cancel</button><button className="submit-button" onClick={() => revealHint(pendingHint)}>Reveal hint</button></div>}</div>}
             {activePanel === "editorial" && <div className="editorial-panel"><EditorialPanel key={id} problemId={id} access={editorial} onChange={setEditorial}/></div>}
             {activePanel === "notes" && <div className="notes-panel"><label htmlFor="private-note">Private note</label><textarea id="private-note" value={note} onChange={(event) => { setNote(event.target.value); setNoteState("idle"); }} placeholder="Capture your approach, edge cases, and lessons learned." rows="10"/><div className="form-actions"><button onClick={saveNote} disabled={noteState === "saving"}>{noteState === "saving" ? "Saving…" : "Save Note"}</button>{note && <button onClick={deleteNote}>Delete Note</button>}</div>{noteState === "saved" && <small>Saved privately to your account.</small>}{noteState === "error" && <small>Unable to save your note.</small>}</div>}
 
@@ -486,7 +490,7 @@ function ProblemSolver() {
                 setSourceCode(nextValue);
                 setLanguageSources((previous) => ({ ...previous, [language]: nextValue }));
               }}
-              theme="vs-dark"
+              theme={theme === "dark" ? "vs-dark" : "vs"}
               options={{ minimap: { enabled: false }, fontSize: 14, tabSize: 2, automaticLayout: true, scrollBeyondLastLine: false, padding: { top: 16, bottom: 16 } }}
             />
           </div>

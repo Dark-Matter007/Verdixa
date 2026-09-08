@@ -3,6 +3,7 @@ package com.leetcode.backend.controller;
 import com.leetcode.backend.dto.LeaderboardEntryResponse;
 import com.leetcode.backend.dto.UserProgressResponse;
 import com.leetcode.backend.dto.UserResponse;
+import com.leetcode.backend.dto.ThemePreferenceRequest;
 import com.leetcode.backend.model.Role;
 import com.leetcode.backend.service.UserService;
 
@@ -25,14 +26,13 @@ public class UserController {
 
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getCurrentUser(Authentication authentication) {
-        UserProgressResponse progress = userService
-                .getProgressForUsername(authentication.getName());
+        return ResponseEntity.ok(userService.getCurrentUser(authentication.getName()));
+    }
 
-        return ResponseEntity.ok(new UserResponse(
-                progress.getId(),
-                progress.getUsername(),
-                progress.getEmail(),
-                progress.getRole()));
+    @PutMapping("/me/theme")
+    public ResponseEntity<UserResponse> updateTheme(@jakarta.validation.Valid @RequestBody ThemePreferenceRequest request,
+            Authentication authentication) {
+        return ResponseEntity.ok(userService.updateTheme(authentication.getName(), request.theme()));
     }
 
     @GetMapping("/me/progress")

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { Award, BadgeCheck, Download, Eye, LockKeyhole, X } from "lucide-react";
 import api from "../services/api";
@@ -20,7 +21,7 @@ function CertificatePreview({ tier, recipientName, onClose }) {
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [onClose]);
 
-  return <div className="certificate-preview-backdrop" role="presentation" onMouseDown={onClose}>
+  return createPortal(<div className="certificate-preview-backdrop" role="presentation" onMouseDown={onClose}>
     <section className="certificate-preview-modal" role="dialog" aria-modal="true" aria-labelledby="certificate-preview-title" onMouseDown={event => event.stopPropagation()}>
       <header className="certificate-preview-header">
         <div><span className="vx-section-meta">Certificate preview</span><h2 id="certificate-preview-title">{tier.target}-problem milestone</h2></div>
@@ -45,7 +46,7 @@ function CertificatePreview({ tier, recipientName, onClose }) {
         {tier.earned && <a className="certificate-download" href={certificatePdfUrl(tier.certificateId)}><Download size={15}/> Download PDF</a>}
       </div>
     </section>
-  </div>;
+  </div>, document.body);
 }
 
 export default function CertificateProgress({ userId, compact = false }) {

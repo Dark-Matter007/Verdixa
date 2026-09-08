@@ -1,6 +1,7 @@
 package com.leetcode.backend.dto;
 
 import com.leetcode.backend.model.Role;
+import com.leetcode.backend.model.ThemePreference;
 import com.leetcode.backend.model.User;
 
 public class UserResponse {
@@ -9,15 +10,17 @@ public class UserResponse {
     private String username;
     private String email;
     private Role role;
+    private ThemePreference theme;
 
     public UserResponse() {
     }
 
-    public UserResponse(Long id, String username, String email, Role role) {
+    public UserResponse(Long id, String username, String email, Role role, ThemePreference theme) {
         this.id = id;
         this.username = username;
         this.email = email;
         this.role = role;
+        this.theme = theme;
     }
 
     public static UserResponse fromUser(User user) {
@@ -25,7 +28,8 @@ public class UserResponse {
                 user.getId(),
                 user.getUsername(),
                 user.getEmail(),
-                user.getRole()
+                user.getRole(),
+                user.getTheme()
         );
     }
 
@@ -44,4 +48,6 @@ public class UserResponse {
     public Role getRole() {
         return role;
     }
+
+    public ThemePreference getTheme() { return theme; }
 }
