@@ -146,6 +146,9 @@ public class SecurityConfig {
                         // HEALTH
                         // ==========================
 
+                        .requestMatchers(HttpMethod.GET, "/api/certificates/*", "/api/certificates/*/pdf").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/problems/*/editorial/reveal").hasAnyRole("USER", "ADMIN")
+
                         .requestMatchers(
                                 "/api/health"
                         ).permitAll()
@@ -171,6 +174,7 @@ public class SecurityConfig {
                                 HttpMethod.GET,
                                 "/api/users/me",
                                 "/api/users/me/progress",
+                                "/api/users/me/certificate-progress",
                                 "/api/users/leaderboard",
                                 "/api/users/leaderboard/page"
                         ).hasAnyRole("USER", "ADMIN")
@@ -254,7 +258,7 @@ public class SecurityConfig {
 
                         .requestMatchers(
                                 HttpMethod.GET,
-                                "/api/problems/admin/all"
+                                "/api/problems/admin/**"
                         ).hasRole("ADMIN")
 
                         // ==========================

@@ -39,6 +39,7 @@ public class SubmissionService {
     private final ContestRepository contestRepository;
     private final ContestProblemRepository contestProblemRepository;
     private final ContestRegistrationRepository contestRegistrationRepository;
+    private final CertificateService certificates;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public SubmissionService(
@@ -50,8 +51,9 @@ public class SubmissionService {
             FunctionExecutionService functionExecutionService,
             ContestRepository contestRepository,
             ContestProblemRepository contestProblemRepository,
-            ContestRegistrationRepository contestRegistrationRepository) {
+            ContestRegistrationRepository contestRegistrationRepository, CertificateService certificates) {
 
+        this.certificates = certificates;
         this.submissionRepository = submissionRepository;
         this.userRepository = userRepository;
         this.problemRepository = problemRepository;
@@ -78,6 +80,17 @@ public class SubmissionService {
     /** Uses the established execution pipeline; the optional contest ID only
      * supplies authorization and persisted scoring context. */
     public Submission createSubmission(Long userId, Long problemId, String language, String sourceCode, Long contestId) {
+        Submission result = judgeSubmission(userId, problemId, language, sourceCode, contestId);
+        if ("ACCEPTED".equals(result.getStatus())) {
+            try { result.setCertificateProgress(certificates.evaluate(userId)); }
+            catch (RuntimeException failure) {
+                org.slf4j.LoggerFactory.getLogger(SubmissionService.class).error("Certificate evaluation failed for saved submission {}", result.getId(), failure);
+            }
+        }
+        return result;
+    }
+
+    private Submission judgeSubmission(Long userId, Long problemId, String language, String sourceCode, Long contestId) {
 
         // -----------------------------------------------------
         // FIND USER

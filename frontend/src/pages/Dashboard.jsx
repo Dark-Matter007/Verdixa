@@ -1,3 +1,4 @@
+import CertificateProgress from "../components/CertificateProgress";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Bookmark, Check, ChevronRight, Search } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -55,6 +56,7 @@ export default function Dashboard() {
         <div className="vx-completion-bar" role="progressbar" aria-label="Problem completion" aria-valuemin="0" aria-valuemax="100" aria-valuenow={progress?.completionPercentage ?? 0}><i style={{width:`${Math.min(100, Math.max(0, progress?.completionPercentage || 0))}%`}} /></div>
       </div>
     </section>
+    <CertificateProgress compact/>
     <div className="vx-dashboard-grid">
       <section className="vx-library" aria-labelledby="problem-library-title">
         <div className="vx-library-header"><div><span className="vx-section-meta">Problem field · {total ?? "—"} available</span><h2 className="vx-section-title" id="problem-library-title">Choose your next problem</h2><p>Search, narrow, and move directly into the workspace.</p></div><span className="vx-section-meta">{visible.length} results</span></div>

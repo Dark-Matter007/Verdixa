@@ -1,3 +1,5 @@
+import EditorialPanel from "../components/EditorialPanel";
+import SubmissionMilestone from "../components/SubmissionMilestone";
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
@@ -244,6 +246,7 @@ function ProblemSolver() {
       );
 
       setResult(response.data);
+      api.get(`/problems/${id}/editorial`).then(value=>setEditorial(value.data)).catch(()=>setEditorial(null));
       fetchSubmissionHistory();
       api.get(`/problems/${id}/hints`).then((value) => { if (!Array.isArray(value.data)) setHintData(value.data); }).catch(() => {});
     } catch (err) {
@@ -372,7 +375,7 @@ function ProblemSolver() {
             <div className="problem-tabs" role="tablist"><button role="tab" aria-selected={activePanel === "description"} className={activePanel === "description" ? "active" : ""} onClick={() => setActivePanel("description")}>Description</button><button role="tab" aria-selected={activePanel === "hints"} className={activePanel === "hints" ? "active" : ""} onClick={() => setActivePanel("hints")}>Hints {hintData.total ? `(${hintData.unlocked}/${hintData.total})` : ""}</button><button role="tab" aria-selected={activePanel === "editorial"} className={activePanel === "editorial" ? "active" : ""} onClick={() => setActivePanel("editorial")}>Editorial</button><button role="tab" aria-selected={activePanel === "notes"} className={activePanel === "notes" ? "active" : ""} onClick={() => setActivePanel("notes")}>My Notes</button></div>
 
             {activePanel === "hints" && <div className="editorial-panel hints-panel"><p className="hint-summary">{hintData.total ? `${hintData.unlocked} of ${hintData.total} hints revealed · ${hintData.attempts} submission attempt${hintData.attempts === 1 ? "" : "s"} on this problem.` : "No hints are configured for this problem."}</p>{hintData.hints.map((hint, index) => <article className={`hint-card ${hint.revealed ? "revealed" : hint.available ? "available" : "locked"}`} key={hint.id}><h3>{hint.revealed ? hint.title : `Hint ${index + 1}`}</h3>{hint.revealed ? <><p>{hint.content}</p>{hint.penaltyPoints > 0 && <small>Penalty applied: {hint.penaltyPoints} points</small>}</> : hint.available ? <><p>Available to reveal{hint.penaltyPoints > 0 ? ` · ${hint.penaltyPoints}-point penalty` : ""}.</p><button className="secondary-button" onClick={() => hint.penaltyPoints > 0 ? setPendingHint(hint) : revealHint(hint)}>Reveal hint</button></> : <><p>{Math.min(hintData.attempts, hint.attemptsRequired)} of {hint.attemptsRequired} attempts completed</p><small>Available after {hint.attemptsRemaining} more attempt{hint.attemptsRemaining === 1 ? "" : "s"}.</small></>}</article>)}{pendingHint && <div className="hint-confirm" role="dialog" aria-modal="true" aria-label="Confirm hint reveal"><p>Revealing this hint applies a {pendingHint.penaltyPoints}-point penalty. Continue?</p><button className="secondary-button" onClick={() => setPendingHint(null)}>Cancel</button><button className="submit-button" onClick={() => revealHint(pendingHint)}>Reveal hint</button></div>}</div>}
-            {activePanel === "editorial" && <div className="editorial-panel">{editorial ? <><h2>Intuition</h2><p>{editorial.intuition}</p><h2>Approach</h2><p>{editorial.approach}</p><h2>Algorithm</h2><p>{editorial.algorithmExplanation}</p><h2>Edge Cases</h2><p>{editorial.edgeCases}</p><p><strong>Time:</strong> {editorial.timeComplexity || "Not specified"} · <strong>Space:</strong> {editorial.spaceComplexity || "Not specified"}</p><details><summary>Official solutions</summary><pre>{language === "java" ? editorial.javaSolution : language === "cpp" ? editorial.cppSolution : editorial.pythonSolution}</pre></details></> : <p>No editorial has been published yet.</p>}</div>}
+            {activePanel === "editorial" && <div className="editorial-panel"><EditorialPanel key={id} problemId={id} access={editorial} onChange={setEditorial}/></div>}
             {activePanel === "notes" && <div className="notes-panel"><label htmlFor="private-note">Private note</label><textarea id="private-note" value={note} onChange={(event) => { setNote(event.target.value); setNoteState("idle"); }} placeholder="Capture your approach, edge cases, and lessons learned." rows="10"/><div className="form-actions"><button onClick={saveNote} disabled={noteState === "saving"}>{noteState === "saving" ? "Saving…" : "Save Note"}</button>{note && <button onClick={deleteNote}>Delete Note</button>}</div>{noteState === "saved" && <small>Saved privately to your account.</small>}{noteState === "error" && <small>Unable to save your note.</small>}</div>}
 
             {activePanel === "description" && <>
@@ -513,6 +516,7 @@ function ProblemSolver() {
 
           {result?.testCases && <div className="function-run-results">{result.testCases.map((item)=><div className={`submission-result ${item.passed===true?"accepted":item.passed===false?"wrong_answer":item.status?.toLowerCase()}`} key={item.caseNumber}><strong>Case {item.caseNumber} — {item.passed===true?"PASSED":item.passed===false?"FAILED":item.status}</strong><span>{item.runtimeMs} ms</span>{item.actual!==null&&<pre>Actual: {JSON.stringify(item.actual)}</pre>}{item.expected!==undefined&&<pre>Expected: {JSON.stringify(item.expected)}</pre>}{item.message&&<pre>{item.message}</pre>}</div>)}</div>}
 
+          {result?.certificateProgress && <SubmissionMilestone key={result.id} progress={result.certificateProgress}/>}
           {result && !result.testCases && (
             <div
               className={`submission-result ${

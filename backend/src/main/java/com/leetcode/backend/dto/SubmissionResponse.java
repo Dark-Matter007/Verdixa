@@ -7,6 +7,9 @@ import java.util.List;
 
 public class SubmissionResponse {
 
+    private CertificateProgressResponse certificateProgress;
+    public CertificateProgressResponse getCertificateProgress(){return certificateProgress;}
+    public void setCertificateProgress(CertificateProgressResponse value){certificateProgress=value;}
     private Long id;
     private Long userId;
     private String username;

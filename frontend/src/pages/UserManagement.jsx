@@ -17,6 +17,7 @@ import { EmptyState, LoadingState } from "../components/PageState";
 function UserManagement() {
   const navigate = useNavigate();
 
+  const [milestones,setMilestones]=useState({});
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -54,6 +55,7 @@ function UserManagement() {
     loadUsers();
   }, [navigate,page,search]);
 
+  useEffect(()=>{let active=true;setMilestones({});if(users.length)api.get("/admin/user-milestones",{params:{ids:users.map(u=>u.id).join(",")}}).then(r=>{if(active)setMilestones(r.data);}).catch(()=>{});return()=>{active=false;};},[users]);
   const handleSearch = async (value) => {
     setSearch(value);
 
@@ -237,6 +239,7 @@ function UserManagement() {
 
                       <small>
                         ID: #{user.id}
+                        {milestones[user.id] && <span className="user-milestone-summary">{milestones[user.id].solved} solved · Highest: {milestones[user.id].highestMilestone || "None"} · {milestones[user.id].certificates} certificates</span>}
                       </small>
 
                     </div>
@@ -273,7 +276,7 @@ function UserManagement() {
 
                   <div className="role-action">
 
-                    <button onClick={() => navigate(`/admin/users/${user.id}`)}>Analytics</button>
+                    <button onClick={() => navigate(`/admin/users/${user.id}`)}>Analytics & Certificates</button>
 
                     <div className="role-select-wrapper">
 

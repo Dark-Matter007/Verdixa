@@ -16,6 +16,7 @@ import { EmptyState, LoadingState } from "../components/PageState";
 function ProblemList() {
   const navigate = useNavigate();
 
+  const [editorialStatuses,setEditorialStatuses]=useState({});
   const [problems, setProblems] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -62,6 +63,7 @@ function ProblemList() {
     }
   };
 
+  useEffect(()=>{let active=true;setEditorialStatuses({});if(problems.length)api.get("/admin/editorial-statuses",{params:{ids:problems.map(p=>p.id).join(",")}}).then(r=>{if(active)setEditorialStatuses(r.data);}).catch(()=>{});return()=>{active=false;};},[problems]);
   const filteredProblems = problems;
 
   return (
@@ -121,7 +123,7 @@ function ProblemList() {
                 <div className="table-row" key={problem.id}>
 
                   <div>
-                    <strong>{problem.title}</strong>
+                    <strong>{problem.title}<small className="editorial-status">Editorial: {editorialStatuses[problem.id] || "Unavailable"}</small></strong>
 
                     <small>
                       ID: #{problem.id}

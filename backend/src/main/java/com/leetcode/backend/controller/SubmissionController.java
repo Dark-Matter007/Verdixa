@@ -65,9 +65,9 @@ public class SubmissionController {
         // serialization never depends on open-in-view or a detached lazy proxy.
         Submission responseSubmission = submissionService.getSubmissionById(submission.getId());
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(new SubmissionResponse(responseSubmission));
+        SubmissionResponse response = new SubmissionResponse(responseSubmission);
+        response.setCertificateProgress(submission.getCertificateProgress());
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     // =========================================================

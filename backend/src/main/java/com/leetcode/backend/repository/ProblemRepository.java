@@ -8,6 +8,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ProblemRepository extends JpaRepository<Problem, Long> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select p from Problem p where p.id = :id")
+    java.util.Optional<Problem> lockById(@org.springframework.data.repository.query.Param("id") Long id);
+
 
     List<Problem> findByDifficultyIgnoreCase(String difficulty);
 

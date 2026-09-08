@@ -77,7 +77,7 @@ class Prompt2JudgePipelineTest {
         when(users.findById(1L)).thenReturn(Optional.of(new User())); when(problems.findWithFunctionSignatureById(2L)).thenReturn(Optional.of(problem)); when(tests.findByProblemId(2L)).thenReturn(official);
         when(submissions.save(any())).thenAnswer(i->i.getArgument(0));
         ContestRepository contests=mock(ContestRepository.class); ContestProblemRepository contestProblems=mock(ContestProblemRepository.class); ContestRegistrationRepository registrations=mock(ContestRegistrationRepository.class);
-        return new Fixture(new SubmissionService(submissions,users,problems,tests,code,functions,contests,contestProblems,registrations),submissions);
+        return new Fixture(new SubmissionService(submissions,users,problems,tests,code,functions,contests,contestProblems,registrations,mock(CertificateService.class)),submissions);
     }
     private record Fixture(SubmissionService service,SubmissionRepository submissions) {}
     private Problem problem(){ Problem p=new Problem(); p.setTitle("Reverse String"); p.setDescription("Reverse"); p.setDifficulty("EASY"); p.setExecutionMode(ExecutionMode.FUNCTION); p.setActive(true);

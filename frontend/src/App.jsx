@@ -29,6 +29,9 @@ import AdminDailyChallenges from "./pages/AdminDailyChallenges";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Landing from "./pages/Landing";
 
+import Certificates from "./pages/Certificates";
+import CertificateVerification from "./pages/CertificateVerification";
+
 function App() {
   return (
     <BrowserRouter>
@@ -41,6 +44,8 @@ function App() {
           path="/login"
           element={<Login />}
         />
+        <Route path="/certificate/:publicId" element={<CertificateVerification />} />
+        <Route path="/profile/certificates" element={<ProtectedRoute allowedRoles={["USER"]}><Certificates /></ProtectedRoute>} />
         <Route path="/register" element={<Register />} />
 
         {/* USER */}

@@ -1,3 +1,4 @@
+import EditorialContent from "../components/EditorialContent";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -535,11 +536,12 @@ Output: [1,2]`}
                     <div className="vx-guidance-heading"><div><span>Technical editorial</span><small>Structured explanation and language solutions</small></div><label className="checkbox-label"><input type="checkbox" checked={Boolean(editorial.published)} onChange={(event) => setEditorial((value) => ({...value, published:event.target.checked}))}/><span>Published</span></label></div>
                     <div className="form-grid">
                       <label className="form-group form-full">Title<input value={editorial.title || ""} onChange={(event) => setEditorial((value) => ({...value,title:event.target.value}))} /></label>
-                      {[['intuition','Intuition'],['approach','Approach'],['algorithmExplanation','Algorithm'],['edgeCases','Edge cases'],['timeComplexity','Time complexity'],['spaceComplexity','Space complexity']].map(([field,label]) => <label className={`form-group ${['intuition','approach','algorithmExplanation','edgeCases'].includes(field) ? 'form-full' : ''}`} key={field}>{label}<textarea rows={['timeComplexity','spaceComplexity'].includes(field) ? 3 : 5} value={editorial[field] || ""} onChange={(event) => setEditorial((value) => ({...value,[field]:event.target.value}))} /></label>)}
+                      {[['intuition','Intuition'],['keyObservations','Key Observations'],['correctness','Correctness'],['referenceGuidance','Reference implementation guidance'],['approach','Approach'],['algorithmExplanation','Algorithm'],['edgeCases','Edge cases'],['timeComplexity','Time complexity'],['spaceComplexity','Space complexity']].map(([field,label]) => <label className={`form-group ${['intuition','approach','algorithmExplanation','edgeCases'].includes(field) ? 'form-full' : ''}`} key={field}>{label}<textarea rows={['timeComplexity','spaceComplexity'].includes(field) ? 3 : 5} value={editorial[field] || ""} onChange={(event) => setEditorial((value) => ({...value,[field]:event.target.value}))} /></label>)}
                     </div>
                     <div className="vx-editorial-code-grid">
                       {[['javaSolution','Java'],['cppSolution','C++17'],['pythonSolution','Python']].map(([field,label]) => <label className="form-group" key={field}>{label} solution<textarea className="code-input" rows="10" value={editorial[field] || ""} onChange={(event) => setEditorial((value) => ({...value,[field]:event.target.value}))} /></label>)}
                     </div>
+                    <details><summary>Preview complete editorial</summary><EditorialContent editorial={editorial}/></details>
                     <button type="button" className="primary-button" disabled={guidanceSaving} onClick={saveEditorial}>{guidanceSaving ? "Saving guidance…" : "Save editorial"}</button>
                   </div>
                 </>

@@ -36,4 +36,11 @@ jobs:
           ALGOSPHERE_RUNTIME_PATH: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
           ALGOSPHERE_JWT_SECRET: ci-test-secret-that-is-at-least-32-characters
         run: mvn -B clean test
+      - name: Check reviewed editorial references
+        env:
+          ALGOSPHERE_CPP_COMMAND: g++
+        run: |
+          python3 tools/build_editorials.py
+          python3 tools/check_editorial_references.py
+          git diff --exit-code -- src/main/resources/editorials/catalog.json
       - run: mvn -B -DskipTests package

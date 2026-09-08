@@ -7,8 +7,12 @@ import java.util.List;
 import com.leetcode.backend.dto.JudgeTestCaseResult;
 
 @Entity
-@Table(name = "submissions")
+@Table(name = "submissions", indexes = @Index(name = "idx_submission_user_problem_status", columnList = "user_id,problem_id,status"))
 public class Submission {
+
+    @Transient private com.leetcode.backend.dto.CertificateProgressResponse certificateProgress;
+    public com.leetcode.backend.dto.CertificateProgressResponse getCertificateProgress(){return certificateProgress;}
+    public void setCertificateProgress(com.leetcode.backend.dto.CertificateProgressResponse value){certificateProgress=value;}
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
