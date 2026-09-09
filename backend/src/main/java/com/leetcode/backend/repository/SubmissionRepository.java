@@ -49,6 +49,34 @@ public interface SubmissionRepository
     @EntityGraph(attributePaths = {"user", "problem", "contest", "contestProblem"})
     List<Submission> findByContestIdAndUserIdOrderBySubmittedAtDesc(Long contestId, Long userId);
 
+    @Query("""
+            select s.user.id as userId, count(distinct s.contestProblem.id) as solved
+            from Submission s
+            where s.contest.id = :contestId
+              and s.status = 'ACCEPTED'
+              and s.user.id in :userIds
+              and s.contestProblem.id in :contestProblemIds
+              and s.submittedAt >= :startAt and s.submittedAt < :endAt
+            group by s.user.id
+            """)
+    List<ContestUserSolvedCount> countAcceptedContestProblemsByUser(
+            @Param("contestId") Long contestId,
+            @Param("userIds") List<Long> userIds,
+            @Param("contestProblemIds") List<Long> contestProblemIds,
+            @Param("startAt") java.time.LocalDateTime startAt,
+            @Param("endAt") java.time.LocalDateTime endAt);
+
+    @Query("""
+            select count(s) from Submission s
+            left join s.contest contest
+            left join s.contestProblem contestProblem
+            left join contestProblem.contest problemContest
+            where contest.id = :contestId or problemContest.id = :contestId
+            """)
+    long countContestHistoryByContestId(@Param("contestId") Long contestId);
+
+    interface ContestUserSolvedCount { Long getUserId(); long getSolved(); }
+
     /** Aggregate library-card statistics in one query instead of loading rows per card. */
     @Query("""
             select s.problem.id as problemId,

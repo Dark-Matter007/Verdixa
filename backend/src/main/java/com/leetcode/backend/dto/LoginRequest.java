@@ -1,8 +1,13 @@
 package com.leetcode.backend.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
 public class LoginRequest {
 
+    @NotBlank @Size(max = 100)
     private String username;
+    @NotBlank @Size(max = 100)
     private String password;
 
     public LoginRequest() {

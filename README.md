@@ -19,7 +19,7 @@ The frontend uses a focused Verdixa visual system with a clean light workspace a
 
 - **User analytics** presents completion progress, acceptance signals, language mix, streaks, and recent submissions.
 - **Problem analytics** presents aggregate submission and acceptance signals, verdict and language distributions, and test-suite readiness without revealing hidden test inputs or expected output.
-- **Contest administration** provides timed contest setup, visibility control, problem selection, and scoring configuration.
+- **Contest administration** provides timed contest setup, visibility control, problem selection, scoring configuration, an admin-only contest registry/detail view, and safe deletion of unused contests.
 
 ### Recent interface and workflow updates
 
@@ -44,7 +44,7 @@ Users authenticate with JWTs, browse the problem library, write a Java, C++, or 
 
 ### User workspace
 
-- Registration, login, JWT-protected routes, and profile/progress analytics.
+- Email-OTP verified registration, login, JWT-protected routes, and profile/progress analytics.
 - Light and dark workspace themes, plus a shared account menu for navigation and sign-out.
 - Searchable problem library with difficulty, topic, status, bookmark, and sorting filters.
 - Monaco editor with Java, C++, and Python starter code.
@@ -149,7 +149,7 @@ Verdixa/
 
 ## Authentication and Authorization
 
-Verdixa uses stateless Spring Security with Bearer JWTs. Tokens include the authenticated username and role and expire after 24 hours. Passwords are stored using BCrypt.
+Verdixa uses stateless Spring Security with Bearer JWTs. Tokens include the authenticated username and role and expire after 24 hours. Passwords are stored using BCrypt. New accounts must verify a six-digit email code before they can sign in or receive a JWT. Codes are generated with `SecureRandom`, BCrypt-hashed at rest, expire after 10 minutes, are single-use, allow five failed attempts, and are rate-limited to one per minute and five per hour per account. Resending replaces the prior code. Existing accounts are backfilled safely by the schema default as verified, so deployments do not lock out established users.
 
 - `/api/auth/**` and `/api/health` are public.
 - `USER` and `ADMIN` roles are enforced by the backend, not only frontend route guards.
@@ -248,6 +248,20 @@ The names below are retained for compatibility with the existing configuration; 
 | `ALGOSPHERE_PYTHON_COMMAND` | Python command | `python` locally, `python3` in Compose |
 | `ALGOSPHERE_RUNTIME_PATH` | Extra process runtime path | platform-specific |
 | `VITE_API_BASE_URL` | Frontend API base URL | `http://localhost:8080/api` locally |
+| `MAIL_ENABLED` | Enables SMTP delivery; leave `false` for local development without a mail sink | `false` |
+| `MAIL_HOST` / `MAIL_PORT` | SMTP server hostname and port | required / `587` when enabled |
+| `MAIL_USERNAME` / `MAIL_PASSWORD` | SMTP credentials (use a provider app password where applicable) | required by authenticated SMTP |
+| `MAIL_FROM` / `MAIL_FROM_NAME` | Sender address and display name | `MAIL_USERNAME` / `Verdixa` |
+| `MAIL_SMTP_AUTH` / `MAIL_SMTP_STARTTLS` | SMTP authentication and TLS controls | `true` / `true` |
+| `MAIL_TEST_CONNECTION` | Verifies the SMTP connection during startup; enable while configuring mail | `false` |
+| `FRONTEND_BASE_URL` | Browser origin embedded in welcome and contest links | `http://localhost:5173` |
+| `APP_TIME_ZONE` | IANA zone shown in contest-registration emails | `UTC` |
+
+### Email delivery and verification
+
+Mail uses Spring Boot's SMTP support and is deliberately opt-in: `MAIL_ENABLED=false` prevents accidental local delivery. For production, set `MAIL_ENABLED=true`, `MAIL_HOST`, and a valid sender, keep `MAIL_SMTP_STARTTLS=true` unless the SMTP provider documents an equivalent TLS transport, and supply credentials through deployment secrets rather than source control. Set `MAIL_TEST_CONNECTION=true` while first configuring a mail provider so invalid credentials stop the backend at startup rather than leaving users waiting for a code. The API never returns or logs OTP values. Mail delivery is attempted only after the associated account verification or contest-registration transaction commits; a delivery failure is logged safely and does not roll back contest registration.
+
+After a user registers, the frontend routes them to `/verify-email`. `POST /api/auth/verify-email-otp` activates the account and triggers the welcome email. `POST /api/auth/resend-email-otp` always returns a generic response to avoid email enumeration. Successful contest registration triggers an after-commit email with the configured frontend contest link and the configured time zone.
 
 ## Docker Compose
 
@@ -284,16 +298,20 @@ All application APIs are under `/api`.
 
 | Area | Representative routes |
 | --- | --- |
-| Authentication | `/auth/register`, `/auth/login` |
+| Authentication | `/auth/register`, `/auth/verify-email-otp`, `/auth/resend-email-otp`, `/auth/login` |
 | Users and progress | `/users/me`, `PUT /users/me/theme`, `/users/me/progress`, `/users/leaderboard` |
 | Problems | `/problems/library`, `/problems/{id}`, `/problems/{id}/navigation` |
 | Test cases | `/problems/{problemId}/testcases` |
 | Execution | `/execution-test/run`, `/execution-test/java`, `/execution-test/cpp`, `/execution-test/python` |
 | Submissions | `/submissions?problemId=…&language=…`, `/submissions/{id}` |
 | Learning and contests | `/bookmarks`, `/lists`, `/collections`, `/learning-paths`, `/daily-challenges`, `/contests` |
-| Administration | `/admin/**`, `/users/**`, `/admin/users/{id}/analytics`, `/admin/problems/{id}/analytics`, administrative contest/problem/test-case routes |
+| Administration | `/admin/**`, `/users/**`, `/admin/users/{id}/analytics`, `/admin/problems/{id}/analytics`, `/admin/contests`, `/admin/contests/{id}`, administrative contest/problem/test-case routes |
 
 Refer to the controller classes under `backend/src/main/java/com/leetcode/backend/controller/` for request and response details.
+
+### Admin contest progress and deletion
+
+`GET /api/admin/contests` returns compact schedule-derived rows, and `GET /api/admin/contests/{id}` returns the assigned problems plus registered-user progress. A problem counts as solved only when a registered user has an `ACCEPTED` submission linked to that contest problem, submitted on or after the contest start and before its end; duplicate accepted attempts count once. `DELETE /api/admin/contests/{id}` removes registrations and contest-problem links only when no contest-bound submission history exists. It never deletes users, global problems, or submissions; when history exists it returns `409 Conflict` instead.
 
 ## Example Workflow
 

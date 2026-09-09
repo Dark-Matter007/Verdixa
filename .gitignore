@@ -51,3 +51,5 @@ temp/
 # Private local notes / credentials
 private/
 .m2/
+Verdixa SMTP key.txt
+backend start.txt

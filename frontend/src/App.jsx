@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import VerifyEmail from "./pages/VerifyEmail";
 import TestCaseManagement from "./pages/TestCaseManagement";
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -47,6 +48,7 @@ function App() {
         <Route path="/certificate/:publicId" element={<CertificateVerification />} />
         <Route path="/profile/certificates" element={<ProtectedRoute allowedRoles={["USER"]}><Certificates /></ProtectedRoute>} />
         <Route path="/register" element={<Register />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
 
         {/* USER */}
 

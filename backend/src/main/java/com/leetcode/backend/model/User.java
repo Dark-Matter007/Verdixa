@@ -31,6 +31,10 @@ public class User {
     @Column(nullable = false, length = 10, columnDefinition = "varchar(10) default 'LIGHT'")
     private ThemePreference theme = ThemePreference.LIGHT;
 
+    /* Defaults to true so Hibernate's update migration preserves pre-verification accounts. */
+    @Column(name = "email_verified", nullable = false, columnDefinition = "boolean default true")
+    private boolean emailVerified = true;
+
     public User() {
     }
 
@@ -80,4 +84,8 @@ public class User {
     public ThemePreference getTheme() { return theme; }
 
     public void setTheme(ThemePreference theme) { this.theme = theme; }
+
+    public boolean isEmailVerified() { return emailVerified; }
+
+    public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
 }

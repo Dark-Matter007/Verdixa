@@ -1,0 +1,17 @@
+import { useEffect, useState } from "react";
+import { ArrowRight, Mail, ShieldCheck } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import api from "../services/api";
+import BrandLogo from "../components/BrandLogo";
+
+const RESEND_COOLDOWN_SECONDS = 60;
+
+export default function VerifyEmail() {
+  const location = useLocation(); const navigate = useNavigate();
+  const [email, setEmail] = useState(location.state?.email || ""); const [otp, setOtp] = useState("");
+  const [cooldown, setCooldown] = useState(location.state?.email ? RESEND_COOLDOWN_SECONDS : 0); const [error, setError] = useState(""); const [notice, setNotice] = useState("Check your inbox for a six-digit code. It expires in 10 minutes."); const [loading, setLoading] = useState(false);
+  useEffect(() => { if (!cooldown) return undefined; const timer = window.setInterval(() => setCooldown((value) => Math.max(0, value - 1)), 1000); return () => window.clearInterval(timer); }, [cooldown]);
+  const verify = async (event) => { event.preventDefault(); setLoading(true); setError(""); try { const response = await api.post("/auth/verify-email-otp", { email:email.trim(), otp }); navigate("/login", { replace:true, state:{ verified:response.data?.message || "Account verified successfully. You can now sign in." } }); } catch (reason) { setError(reason.response?.data?.message || "We could not verify that code."); } finally { setLoading(false); } };
+  const resend = async () => { if (cooldown) return; setLoading(true); setError(""); try { const response = await api.post("/auth/resend-email-otp", { email:email.trim() }); setNotice(response.data?.message || "If an account requires verification, a code has been sent."); setCooldown(RESEND_COOLDOWN_SECONDS); } catch (reason) { setError(reason.response?.data?.message || "Unable to request another code right now."); } finally { setLoading(false); } };
+  return <main className="vx-auth"><section className="vx-auth-manifest"><div className="vx-auth-brand"><BrandLogo/><span>VERDIXA / 01</span></div><div><p className="vx-eyebrow">Secure workspace setup</p><h1>One final<br/>confirmation.</h1><p>Verify your email to activate your Verdixa workspace.</p></div><small>One-time code<br/>Expires in 10 minutes</small></section><section className="vx-auth-form"><div><span className="vx-section-meta">Email verification</span><h2>Confirm your inbox</h2><p>{notice}</p>{error && <div className="error-message" role="alert">{error}</div>}<form onSubmit={verify}><label>Email address<div className="input-wrapper"><Mail size={17}/><input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required/></div></label><label>Verification code<div className="input-wrapper"><ShieldCheck size={17}/><input inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength="6" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, ""))} required placeholder="000000"/></div></label><button className="login-button" disabled={loading}>{loading ? "Verifying…" : "Verify account"}<ArrowRight size={17}/></button></form><p className="register-link">Didn’t receive it? <button className="vx-text-button" type="button" onClick={resend} disabled={loading || cooldown > 0}>{cooldown > 0 ? `Resend in ${cooldown}s` : "Resend OTP"}</button></p><p className="register-link">Already verified? <Link to="/login">Sign in</Link></p></div></section></main>;
+}
