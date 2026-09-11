@@ -25,7 +25,10 @@ The frontend uses a focused Verdixa visual system with a clean light workspace a
 
 - Added Google and GitHub social sign-in with safe existing-account linking, short-lived single-use browser exchange codes, and normal Verdixa JWT issuance.
 - Added account-enumeration-safe forgot-password recovery using a six-digit, short-lived, single-use email code.
-- Unified the public, USER, and ADMIN chat experiences as the Verdixa Assistant. Each mode shares the same Verdixa-only scope policy while keeping its own data permissions.
+- Upgraded the public, USER, and ADMIN chat experiences with a hybrid intent pipeline: deterministic security and permission checks run first, natural-language classification handles ambiguous phrasing, and every mode remains strictly Verdixa-only.
+- Added typo-tolerant public help and benefit-oriented answers for conversational questions such as “What can I do here?” and “Why should I use Verdixa?”, without making core assistance depend on Gemini availability.
+- Added safe page context (`LANDING`, `DASHBOARD`, `PROBLEM`, `CONTEST`, or `ADMIN`) so short questions can be interpreted naturally without trusting browser-provided identity or role information.
+- Extended USER progress summaries and ADMIN analytics/contest guidance while keeping every personal or administrative value grounded in authorized database queries.
 - Added a light/dark theme switcher to authenticated workspaces. The current selection is applied before rendering and retained locally; the API and user model also support a `LIGHT`/`DARK` theme preference.
 - Redesigned the user workspace around a persistent navigation rail, compact account menu, and responsive workspace header.
 - Updated the solver’s light surface and Monaco theme. Locked-hint availability notices are crimson in light mode, while dark mode retains the original yellow status color.
@@ -67,6 +70,21 @@ Users authenticate with JWTs, browse the problem library, write a Java, C++, or 
 ## Judge Architecture
 
 The backend executes submissions through `ProcessBuilder` and has language-specific paths for Java, C++, and Python.
+
+```mermaid
+flowchart LR
+    A["Run or Submit"] --> B["Validate source, language, and problem contract"]
+    B --> C["Create dedicated temporary workspace"]
+    C --> D{"Execution mode"}
+    D -->|STDIN| E["Compile when required and execute with standard input"]
+    D -->|FUNCTION| F["Validate signature and generate typed harness"]
+    F --> E
+    E --> G["Enforce compile and runtime timeouts"]
+    G --> H["Normalize and compare output"]
+    H --> I["Produce verdict and per-case summary"]
+    I --> J["Persist official submissions and update progress"]
+    I --> K["Clean temporary files"]
+```
 
 1. A source file is created in a per-execution temporary directory.
 2. Compiled languages are compiled before execution; compilation is limited to 30 seconds.
@@ -110,13 +128,43 @@ The local defaults are configurable through environment variables. The Docker ba
 ## System Architecture
 
 ```mermaid
-flowchart LR
-    U[User or administrator] --> F[React + Vite + Monaco]
-    F -->|REST API / Bearer JWT| B[Spring Boot backend]
-    B --> D[(MySQL)]
-    B --> J[Java / C++ / Python executor]
-    J --> B
+flowchart TB
+    subgraph Experience["Experience layer"]
+        LP["Public landing page"]
+        UW["USER workspace"]
+        AW["ADMIN workspace"]
+        FE["React 19 · Router 7 · Vite 8 · Monaco"]
+        LP --> FE
+        UW --> FE
+        AW --> FE
+    end
+
+    subgraph Application["Application and security layer"]
+        API["Spring MVC REST API"]
+        SEC["Spring Security · JWT · OAuth2 · RBAC"]
+        CORE["Problems · Submissions · Contests · Certificates · Learning"]
+        AST["Verdixa Assistant policy and role services"]
+        SEC --> CORE
+        SEC --> AST
+    end
+
+    subgraph DataAndExecution["Data and execution layer"]
+        DB[("MySQL 8")]
+        JUDGE["Java · C++ · Python judge"]
+        MAIL["SMTP / Brevo-compatible mail"]
+        GEMINI["Google Gemini API"]
+    end
+
+    FE -->|"HTTPS REST · Bearer JWT where required"| API
+    API --> SEC
+    CORE --> DB
+    CORE --> JUDGE
+    CORE --> MAIL
+    AST --> DB
+    AST -.-> GEMINI
 ```
+
+The browser owns presentation and non-sensitive page context only. Spring Security resolves authentication and roles, backend services enforce ownership and authorization, MySQL remains the source of truth for platform data, and the language executor is isolated behind the application service boundary.
 
 ## Project Structure
 
@@ -299,12 +347,46 @@ After a user registers, the frontend routes them to `/verify-email`. `POST /api/
 
 Verdixa Assistant is available on the public landing page, in USER workspaces, and in the ADMIN workspace. React sends messages only to the Spring Boot API; the Gemini key is server-only and is never exposed through Vite.
 
-- A shared deterministic scope layer classifies requests as public help, current-user data, admin data, platform explanation/navigation, admin action, out-of-scope, or sensitive. General-purpose questions and prompt-injection attempts receive a Verdixa-only response before Gemini is considered.
-- `POST /api/assistant/public/chat` is anonymous. It answers public help about signup, login, Google/GitHub sign-in, email verification, password recovery, problems, submissions, contests, certificates, hints, editorials, verdicts, and platform navigation. Personal requests receive a specific sign-in prompt.
-- `POST /api/assistant/chat` requires JWT authentication and resolves the current user from Spring Security, never a browser-supplied user ID. Solved/attempted/accepted counts, certificate progress, registrations, and recent submissions come from controlled repository queries.
-- `POST /api/admin/assistant/chat` requires ADMIN access. Platform and contest statistics are derived from authorized Verdixa data; contest recommendations use the real active problem catalogue and remain review/confirmation-oriented rather than creating data automatically.
+- A shared hybrid scope layer normalizes conversational input, applies deterministic security and permission-sensitive checks, recognizes high-confidence Verdixa intents, and uses semantic classification only for genuinely ambiguous wording.
+- Semantic classification has a strict server-validated enum contract. Gemini can suggest an intent, but it cannot authenticate a caller, grant a role, authorize data, execute an admin action, or override Spring Security.
+- `POST /api/assistant/public/chat` is anonymous. It answers overview, benefits, signup, login, Google/GitHub sign-in, email verification, password recovery, problems, judge behavior, supported languages, submissions, contests, certificates, leaderboard, hints, editorials, daily challenges, and navigation. Personal requests receive a specific sign-in prompt; administrative requests remain unavailable.
+- `POST /api/assistant/chat` requires JWT authentication and resolves the current user from Spring Security, never a browser-supplied user ID. Natural questions such as “How am I doing?”, “What did I solve?”, and “How far am I from my next certificate?” are answered from controlled repository data.
+- `POST /api/admin/assistant/chat` requires ADMIN access. Natural platform-summary, contest-analytics, and safe contest-drafting questions are derived from authorized Verdixa data; recommendations use the real active problem catalogue and remain review/confirmation-oriented rather than creating data automatically.
 - Secrets and security-sensitive material—including passwords, OTPs, reset tokens, credential hashes, provider/API keys, hidden judge cases, and environment values—are never exposed. USER mode cannot access admin or other-user data; ADMIN mode still cannot bypass this boundary.
-- Deterministic public help, login-required responses, scope refusals, user statistics, and admin statistics continue to work when Gemini is unavailable. Gemini is used only when permitted Verdixa-specific conversational explanation adds value.
+- Deterministic public knowledge, login-required responses, scope refusals, user statistics, and admin statistics continue to work when Gemini is disabled, unavailable, or returns malformed classifier output.
+
+#### Role capability model
+
+| Mode | Allowed | Protected boundary |
+| --- | --- | --- |
+| **PUBLIC** | Verdixa overview, benefits, account/auth help, public feature explanations, and navigation | No personal progress, participant data, admin analytics/actions, hidden judge data, or secrets |
+| **USER** | All public help plus the authenticated user’s progress, submissions, contests, certificates, profile, and permitted problem guidance | No other-user data, admin analytics/actions, locked content, hidden judge data, or secrets |
+| **ADMIN** | Public help plus authorized platform analytics, management guidance, and safe contest-draft assistance | No passwords, hashes, OTPs, tokens, provider credentials, environment secrets, or hidden judge cases |
+
+#### Intent, authorization, and response workflow
+
+```mermaid
+flowchart TD
+    A["Message + safe page context"] --> B["Validate length and normalize wording"]
+    B --> C{"Sensitive or prompt-injection request?"}
+    C -->|Yes| R1["Security-specific refusal"]
+    C -->|No| D["Resolve PUBLIC, USER, or ADMIN from the server security context"]
+    D --> E["Detect personal-data and admin-only markers"]
+    E --> F{"High-confidence Verdixa intent?"}
+    F -->|Yes| G["Use deterministic scope"]
+    F -->|Ambiguous| H["Request one strict semantic intent enum"]
+    H --> I{"Enum valid?"}
+    I -->|No| J["Deterministic fallback using Verdixa and page context"]
+    I -->|Yes| G
+    J --> G
+    G --> K{"Role capability permits the scope?"}
+    K -->|No| R2["Sign-in guidance, admin-only notice, or Verdixa-only refusal"]
+    K -->|Yes, static help| L["Return deterministic public knowledge"]
+    K -->|Yes, data request| M["Retrieve authorized database/service context"]
+    M --> N["Return deterministic result or bounded Gemini-assisted wording"]
+```
+
+The order is deliberate: sensitive-data detection and backend authorization always precede optional model assistance. Safe page context improves short prompts such as “What can I do here?”, but it never supplies identity or permission.
 
 Set `GEMINI_ENABLED=true`, `GEMINI_API_KEY`, and optionally `GEMINI_MODEL` in deployment secrets. The default model is `gemini-2.5-flash`; configure a currently supported model appropriate for your Gemini account. No real key belongs in `.env.example`, source, or browser variables.
 
@@ -365,14 +447,19 @@ Refer to the controller classes under `backend/src/main/java/com/leetcode/backen
 
 ## Example Workflow
 
-1. Register or log in.
-2. Browse and filter the problem library.
-3. Open a problem and select Java, C++, or Python.
-4. Write a solution in Monaco and run custom input/cases.
-5. Submit the solution.
-6. Verdixa evaluates official public and hidden test cases.
-7. Review the verdict, per-case summary, timing, and persisted submission history.
-8. Track progress through the profile, leaderboard, daily challenge, contests, and learning content.
+```mermaid
+flowchart LR
+    A["Create or access an account"] --> B["Browse and filter problems"]
+    B --> C["Solve in Monaco using Java, C++, or Python"]
+    C --> D["Run custom cases"]
+    D --> E["Submit official solution"]
+    E --> F["Judge public and hidden cases"]
+    F --> G["Review verdict, timing, and history"]
+    G --> H["Track progress, contests, rankings, and certificates"]
+    H --> B
+```
+
+This loop connects practice, evaluation, and measurable progress. Users can also follow curated learning paths, complete the daily challenge, use progressive hints and eligible editorials, and participate in scheduled contests.
 
 For a FUNCTION problem, a Python submission can be limited to the requested function:
 
@@ -387,6 +474,8 @@ Verdixa generates the language-specific harness, supplies the configured typed a
 
 - A dual STDIN/FUNCTION judge model supports both full-program and interview-style method submissions.
 - Typed FUNCTION argument validation and wrapper generation keep the contract consistent across three languages.
+- A hybrid assistant pipeline separates intent understanding from authorization: deterministic policy gates every request, optional semantic classification returns only a validated enum, and authorized services supply all personal and administrative facts.
+- OAuth login uses provider-verified identity plus a short-lived one-time exchange code, while email verification and password recovery store only BCrypt-hashed OTP material.
 - REST, JPA, and DTO boundaries separate the user interface, application logic, persistence, and response shaping.
 - Spring Security RBAC protects privileged management paths while ownership checks guard personal resources.
 - Docker Compose provides a reproducible three-service local stack; CI validates both frontend and backend builds.
@@ -456,7 +545,7 @@ No hosted deployment URL is configured in this repository. The included Dockerfi
 
 ## What This Project Demonstrates
 
-Verdixa demonstrates full-stack system design across React UI workflows, REST API design, JWT/RBAC security, relational modeling, multi-language process execution, automated judging, testable backend services, and CI-backed builds.
+Verdixa demonstrates full-stack system design across React UI workflows, REST API design, JWT/RBAC and OAuth2 security, relational modeling, multi-language process execution, automated judging, authorization-safe AI integration, testable backend services, and CI-backed builds.
 
 ## Contributing
 
