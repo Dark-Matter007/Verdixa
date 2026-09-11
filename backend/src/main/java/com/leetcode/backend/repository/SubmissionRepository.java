@@ -42,6 +42,8 @@ public interface SubmissionRepository
     long countByStatus(String status);
 
     long countByUserIdAndProblemId(Long userId, Long problemId);
+    long countByUserId(Long userId);
+    long countByUserIdAndStatus(Long userId, String status);
 
     @EntityGraph(attributePaths = {"user", "problem", "contest", "contestProblem"})
     List<Submission> findByContestIdOrderBySubmittedAtAsc(Long contestId);

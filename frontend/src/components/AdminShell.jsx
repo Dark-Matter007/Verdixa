@@ -1,5 +1,6 @@
 import Sidebar from "./Sidebar";
 import UserAccountMenu from "./UserAccountMenu";
+import VerdixaAssistant from "./VerdixaAssistant";
 
 export default function AdminShell({ eyebrow = "Administration", title, description, actions, children }) {
   return <div className="dashboard-layout vx-admin-shell">
@@ -15,5 +16,5 @@ export default function AdminShell({ eyebrow = "Administration", title, descript
       </header>
       {children}
     </main>
-  </div>;
+  <VerdixaAssistant mode="admin" /></div>;
 }

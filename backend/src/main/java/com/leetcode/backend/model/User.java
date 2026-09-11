@@ -20,7 +20,8 @@ public class User {
     private String email;
 
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    @Column(nullable = false)
+    /** Null means this account has no local password credential (OAuth-only). */
+    @Column
     private String password;
 
     @Enumerated(EnumType.STRING)

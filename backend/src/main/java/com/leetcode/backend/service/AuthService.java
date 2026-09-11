@@ -8,6 +8,8 @@ import com.leetcode.backend.model.Role;
 import com.leetcode.backend.model.User;
 import com.leetcode.backend.repository.EmailVerificationTokenRepository;
 import com.leetcode.backend.repository.UserRepository;
+import com.leetcode.backend.repository.PasswordResetTokenRepository;
+import com.leetcode.backend.model.PasswordResetToken;
 import com.leetcode.backend.security.JwtService;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,10 +32,11 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final ApplicationEventPublisher events;
+    private final PasswordResetTokenRepository resetTokens;
     private final SecureRandom secureRandom = new SecureRandom();
 
-    public AuthService(UserRepository users, EmailVerificationTokenRepository tokens, PasswordEncoder passwordEncoder, JwtService jwtService, ApplicationEventPublisher events) {
-        this.users = users; this.tokens = tokens; this.passwordEncoder = passwordEncoder; this.jwtService = jwtService; this.events = events;
+    public AuthService(UserRepository users, EmailVerificationTokenRepository tokens, PasswordResetTokenRepository resetTokens, PasswordEncoder passwordEncoder, JwtService jwtService, ApplicationEventPublisher events) {
+        this.users = users; this.tokens = tokens; this.resetTokens = resetTokens; this.passwordEncoder = passwordEncoder; this.jwtService = jwtService; this.events = events;
     }
 
     /** Always returns normally for an existing email to avoid account enumeration. */
@@ -76,11 +79,60 @@ public class AuthService {
 
     public User authenticate(LoginRequest request) {
         User user = users.findByUsername(request.getUsername().trim()).orElseThrow(() -> new IllegalArgumentException("Invalid username or password."));
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) throw new IllegalArgumentException("Invalid username or password.");
+        if (user.getPassword() == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) throw new IllegalArgumentException("This account does not have a local password. Use a connected sign-in method or reset your password.");
         if (!user.isEmailVerified()) throw new EmailNotVerifiedException();
         return user;
     }
     public String generateToken(User user) { return jwtService.generateToken(user.getUsername(), user.getRole().name()); }
+
+    /** Always succeeds publicly to avoid revealing whether an address owns an account. */
+    @Transactional public void requestPasswordReset(String requestedEmail) {
+        users.findByEmail(normalizeEmail(requestedEmail)).ifPresent(candidate -> {
+            User user = users.lockById(candidate.getId()).orElseThrow();
+            issuePasswordResetIfAllowed(user);
+        });
+    }
+
+    @Transactional(noRollbackFor = OtpVerificationException.class)
+    public void verifyPasswordResetOtp(String requestedEmail, String otp) {
+        PasswordResetToken token = resetToken(requestedEmail);
+        validateResetToken(token, otp, false);
+    }
+
+    @Transactional(noRollbackFor = OtpVerificationException.class)
+    public void resetPassword(String requestedEmail, String otp, String password, String confirmPassword) {
+        if (!password.equals(confirmPassword)) throw new IllegalArgumentException("Passwords do not match.");
+        PasswordResetToken token = resetToken(requestedEmail);
+        validateResetToken(token, otp, true);
+        User user = users.lockById(token.getUser().getId()).orElseThrow(OtpVerificationException::new);
+        user.setPassword(passwordEncoder.encode(password));
+        token.setConsumedAt(LocalDateTime.now());
+        users.save(user); resetTokens.save(token);
+    }
+
+    @Transactional public void resendPasswordReset(String requestedEmail) { requestPasswordReset(requestedEmail); }
+
+    private PasswordResetToken resetToken(String requestedEmail) {
+        User user = users.findByEmail(normalizeEmail(requestedEmail)).flatMap(candidate -> users.lockById(candidate.getId())).orElseThrow(OtpVerificationException::new);
+        return resetTokens.findByUserIdForUpdate(user.getId()).orElseThrow(OtpVerificationException::new);
+    }
+    private void validateResetToken(PasswordResetToken token, String otp, boolean consume) {
+        LocalDateTime now = LocalDateTime.now();
+        if (token.getConsumedAt() != null || !now.isBefore(token.getExpiresAt()) || token.getFailedAttempts() >= OTP_MAX_ATTEMPTS) throw new OtpVerificationException();
+        if (!passwordEncoder.matches(otp, token.getOtpHash())) { token.setFailedAttempts(token.getFailedAttempts()+1); resetTokens.save(token); throw new OtpVerificationException(); }
+        if (consume) token.setConsumedAt(now);
+    }
+    private void issuePasswordResetIfAllowed(User user) {
+        LocalDateTime now = LocalDateTime.now();
+        PasswordResetToken token = resetTokens.findByUserIdForUpdate(user.getId()).orElse(null);
+        if (token != null && token.getResendAvailableAt().isAfter(now)) return;
+        if (token == null) { token = new PasswordResetToken(); token.setUser(user); token.setIssueWindowStartedAt(now); token.setIssueCount(0); }
+        else if (!token.getIssueWindowStartedAt().plusHours(1).isAfter(now)) { token.setIssueWindowStartedAt(now); token.setIssueCount(0); }
+        if (token.getIssueCount() >= OTP_MAX_ISSUES_PER_HOUR) return;
+        String otp = String.format(Locale.ROOT, "%06d", secureRandom.nextInt(1_000_000));
+        token.setOtpHash(passwordEncoder.encode(otp)); token.setExpiresAt(now.plusMinutes(OTP_EXPIRY_MINUTES)); token.setResendAvailableAt(now.plusSeconds(OTP_RESEND_COOLDOWN_SECONDS)); token.setFailedAttempts(0); token.setConsumedAt(null); token.setIssueCount(token.getIssueCount()+1);
+        resetTokens.save(token); events.publishEvent(new EmailNotificationEvents.PasswordResetOtpIssued(user.getEmail(), user.getUsername(), otp));
+    }
 
     private void issueOtpIfAllowed(User user) {
         LocalDateTime now = LocalDateTime.now();

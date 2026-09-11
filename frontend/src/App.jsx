@@ -3,6 +3,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import VerifyEmail from "./pages/VerifyEmail";
+import ForgotPassword from "./pages/ForgotPassword";
+import OAuthCallback from "./pages/OAuthCallback";
+import OAuthError from "./pages/OAuthError";
 import TestCaseManagement from "./pages/TestCaseManagement";
 import Dashboard from "./pages/Dashboard";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -21,6 +24,7 @@ import LearningPaths from "./pages/LearningPaths";
 import DailyChallenge from "./pages/DailyChallenge";
 import Contests from "./pages/Contests";
 import ContestDetail from "./pages/ContestDetail";
+import ContestLaunch from "./pages/ContestLaunch";
 import AdminContests from "./pages/AdminContests";
 import AdminCollections from "./pages/AdminCollections";
 import AdminUserDetail from "./pages/AdminUserDetail";
@@ -49,6 +53,9 @@ function App() {
         <Route path="/profile/certificates" element={<ProtectedRoute allowedRoles={["USER"]}><Certificates /></ProtectedRoute>} />
         <Route path="/register" element={<Register />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/oauth/callback" element={<OAuthCallback />} />
+        <Route path="/oauth/error" element={<OAuthError />} />
 
         {/* USER */}
 
@@ -77,6 +84,7 @@ function App() {
         <Route path="/daily" element={<ProtectedRoute allowedRoles={["USER"]}><DailyChallenge /></ProtectedRoute>} />
         <Route path="/contests" element={<ProtectedRoute allowedRoles={["USER"]}><Contests /></ProtectedRoute>} />
         <Route path="/contests/:id" element={<ProtectedRoute allowedRoles={["USER"]}><ContestDetail /></ProtectedRoute>} />
+        <Route path="/contests/:id/solve" element={<ProtectedRoute allowedRoles={["USER"]}><ContestLaunch /></ProtectedRoute>} />
 
         <Route
           path="/profile"

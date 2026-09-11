@@ -53,3 +53,4 @@ private/
 .m2/
 Verdixa SMTP key.txt
 backend start.txt
+verdixa Gemini api key.txt

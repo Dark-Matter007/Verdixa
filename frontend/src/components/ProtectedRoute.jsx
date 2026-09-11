@@ -1,4 +1,5 @@
 import { Navigate, useLocation } from "react-router-dom";
+import VerdixaAssistant from "./VerdixaAssistant";
 
 function ProtectedRoute({ children, allowedRoles }) {
   const location = useLocation();
@@ -13,7 +14,7 @@ function ProtectedRoute({ children, allowedRoles }) {
     return <Navigate to={role === "ADMIN" ? "/admin" : "/dashboard"} replace />;
   }
 
-  return children;
+  return <>{children}{role === "USER" && <VerdixaAssistant />}</>;
 }
 
 export default ProtectedRoute;

@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 public class NoopEmailService implements EmailService {
     private static final Logger log = LoggerFactory.getLogger(NoopEmailService.class);
     @Override public void sendVerificationCode(String recipient, String username, String otp) { log.warn("Email delivery is disabled; a verification email was not delivered."); }
+    @Override public void sendPasswordResetCode(String recipient, String username, String otp) { log.warn("Email delivery is disabled; a password reset email was not delivered."); }
     @Override public void sendWelcome(String recipient, String username) { log.warn("Email delivery is disabled; a welcome email was not delivered."); }
     @Override public void sendContestRegistration(String recipient, String username, String contestTitle, String description, LocalDateTime startAt, LocalDateTime endAt, int problemCount, Long contestId) { log.warn("Email delivery is disabled; a contest registration email was not delivered."); }
 }

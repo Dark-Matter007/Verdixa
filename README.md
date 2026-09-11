@@ -23,6 +23,9 @@ The frontend uses a focused Verdixa visual system with a clean light workspace a
 
 ### Recent interface and workflow updates
 
+- Added Google and GitHub social sign-in with safe existing-account linking, short-lived single-use browser exchange codes, and normal Verdixa JWT issuance.
+- Added account-enumeration-safe forgot-password recovery using a six-digit, short-lived, single-use email code.
+- Unified the public, USER, and ADMIN chat experiences as the Verdixa Assistant. Each mode shares the same Verdixa-only scope policy while keeping its own data permissions.
 - Added a light/dark theme switcher to authenticated workspaces. The current selection is applied before rendering and retained locally; the API and user model also support a `LIGHT`/`DARK` theme preference.
 - Redesigned the user workspace around a persistent navigation rail, compact account menu, and responsive workspace header.
 - Updated the solver’s light surface and Monaco theme. Locked-hint availability notices are crimson in light mode, while dark mode retains the original yellow status color.
@@ -99,7 +102,7 @@ The local defaults are configurable through environment variables. The Docker ba
 | Frontend | React 19, React Router 7, Vite 8, Axios, Lucide |
 | Editor | Monaco Editor (`@monaco-editor/react`) |
 | Backend | Java 21, Spring Boot 4.1.1, Spring MVC, Bean Validation |
-| Security | Spring Security, JJWT, BCrypt |
+| Security | Spring Security, JJWT, BCrypt, Spring OAuth2 Client |
 | Persistence | Spring Data JPA / Hibernate, MySQL 8 |
 | Testing | JUnit, Spring Boot test starters, H2 (test scope), Vitest, React Testing Library |
 | Delivery | Docker, Docker Compose, Nginx, GitHub Actions |
@@ -155,6 +158,32 @@ Verdixa uses stateless Spring Security with Bearer JWTs. Tokens include the auth
 - `USER` and `ADMIN` roles are enforced by the backend, not only frontend route guards.
 - Admin-only endpoints protect user management, administrative analytics, problem mutations, and hidden-test management.
 - Submission, note, list, and bookmark access includes ownership checks or role checks as appropriate.
+
+### Social login: Google and GitHub
+
+Google and GitHub use Spring Security OAuth2/OIDC client support. The provider redirects to the backend, where provider identity is verified before Verdixa resolves an account. A linked `provider + providerUserId` is authoritative; if it is new, a trustworthy, normalized email links to an existing Verdixa account before a new `USER` account is created. This preserves existing submissions, certificates, and `ADMIN` roles, and never infers an administrator role from provider data.
+
+Google requires the OIDC `email_verified` claim. GitHub requests only `read:user,user:email`, then consults GitHub's user-email endpoint and selects a verified primary email (or another verified address). A missing trustworthy email returns a friendly error; no synthetic email account is created. OAuth-only users have no known password. Password reset remains ownership-verified by the email address and can establish a local password.
+
+Provider access/refresh tokens are not persisted. On successful OAuth login the backend creates a cryptographically random, 90-second, single-use code and redirects the browser to `/oauth/callback?code=...`. React exchanges that code at `POST /api/auth/oauth/exchange` for the normal Verdixa JWT. The JWT is never included in a redirect URL.
+
+Configure these server-side values only (never use a `VITE_` prefix for secrets):
+
+| Variable | Purpose |
+| --- | --- |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth web-client credentials |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | GitHub OAuth App credentials |
+| `OAUTH2_FRONTEND_SUCCESS_URL` | Frontend callback, e.g. `http://localhost:5173/oauth/callback` |
+| `OAUTH2_FRONTEND_FAILURE_URL` | Frontend error page, e.g. `http://localhost:5173/oauth/error` |
+
+For direct local backend development, register these exact provider callback URLs:
+
+- Google authorized redirect URI: `http://localhost:8080/login/oauth2/code/google`
+- GitHub Authorization callback URL: `http://localhost:8080/login/oauth2/code/github`
+
+When using the Compose frontend proxy, register `http://localhost:5173/login/oauth2/code/google` and `http://localhost:5173/login/oauth2/code/github` instead. In production, use the real public backend/proxy domain in those two URLs—do not invent or register a placeholder domain.
+
+To configure Google, create an OAuth 2.0 **Web application** client in Google Cloud Console, configure the consent screen, add the relevant redirect URI, and copy the client ID/secret into deployment secrets. To configure GitHub, create an **OAuth App**, set its homepage and exact Authorization callback URL, then copy its client ID/client secret into deployment secrets. Do not commit them.
 
 ## Security and Execution Boundaries
 
@@ -256,12 +285,32 @@ The names below are retained for compatibility with the existing configuration; 
 | `MAIL_TEST_CONNECTION` | Verifies the SMTP connection during startup; enable while configuring mail | `false` |
 | `FRONTEND_BASE_URL` | Browser origin embedded in welcome and contest links | `http://localhost:5173` |
 | `APP_TIME_ZONE` | IANA zone shown in contest-registration emails | `UTC` |
+| `GEMINI_ENABLED` | Enables permitted Gemini-assisted Verdixa responses | `false` |
+| `GEMINI_API_KEY` | Server-only Gemini API key | unset |
+| `GEMINI_MODEL` | Gemini model used when generation is needed | `gemini-2.5-flash` |
 
 ### Email delivery and verification
 
 Mail uses Spring Boot's SMTP support and is deliberately opt-in: `MAIL_ENABLED=false` prevents accidental local delivery. For production, set `MAIL_ENABLED=true`, `MAIL_HOST`, and a valid sender, keep `MAIL_SMTP_STARTTLS=true` unless the SMTP provider documents an equivalent TLS transport, and supply credentials through deployment secrets rather than source control. Set `MAIL_TEST_CONNECTION=true` while first configuring a mail provider so invalid credentials stop the backend at startup rather than leaving users waiting for a code. The API never returns or logs OTP values. Mail delivery is attempted only after the associated account verification or contest-registration transaction commits; a delivery failure is logged safely and does not roll back contest registration.
 
 After a user registers, the frontend routes them to `/verify-email`. `POST /api/auth/verify-email-otp` activates the account and triggers the welcome email. `POST /api/auth/resend-email-otp` always returns a generic response to avoid email enumeration. Successful contest registration triggers an after-commit email with the configured frontend contest link and the configured time zone.
+
+### Verdixa Assistant
+
+Verdixa Assistant is available on the public landing page, in USER workspaces, and in the ADMIN workspace. React sends messages only to the Spring Boot API; the Gemini key is server-only and is never exposed through Vite.
+
+- A shared deterministic scope layer classifies requests as public help, current-user data, admin data, platform explanation/navigation, admin action, out-of-scope, or sensitive. General-purpose questions and prompt-injection attempts receive a Verdixa-only response before Gemini is considered.
+- `POST /api/assistant/public/chat` is anonymous. It answers public help about signup, login, Google/GitHub sign-in, email verification, password recovery, problems, submissions, contests, certificates, hints, editorials, verdicts, and platform navigation. Personal requests receive a specific sign-in prompt.
+- `POST /api/assistant/chat` requires JWT authentication and resolves the current user from Spring Security, never a browser-supplied user ID. Solved/attempted/accepted counts, certificate progress, registrations, and recent submissions come from controlled repository queries.
+- `POST /api/admin/assistant/chat` requires ADMIN access. Platform and contest statistics are derived from authorized Verdixa data; contest recommendations use the real active problem catalogue and remain review/confirmation-oriented rather than creating data automatically.
+- Secrets and security-sensitive material—including passwords, OTPs, reset tokens, credential hashes, provider/API keys, hidden judge cases, and environment values—are never exposed. USER mode cannot access admin or other-user data; ADMIN mode still cannot bypass this boundary.
+- Deterministic public help, login-required responses, scope refusals, user statistics, and admin statistics continue to work when Gemini is unavailable. Gemini is used only when permitted Verdixa-specific conversational explanation adds value.
+
+Set `GEMINI_ENABLED=true`, `GEMINI_API_KEY`, and optionally `GEMINI_MODEL` in deployment secrets. The default model is `gemini-2.5-flash`; configure a currently supported model appropriate for your Gemini account. No real key belongs in `.env.example`, source, or browser variables.
+
+### Forgot Password
+
+`/forgot-password` provides email → six-digit code → new password recovery. Requests always return the same confirmation to prevent account enumeration. Reset codes use `SecureRandom`, are BCrypt-hashed at rest, expire after 10 minutes, are single-use, have five verification attempts, and respect a 60-second resend cooldown plus a five-per-hour issue cap. Mail is delivered through the existing configured SMTP/Brevo-compatible pipeline after commit. Passwords are BCrypt-hashed; a successful reset makes the old password fail immediately. Existing stateless JWTs are not revoked early because the current JWT design has no token-version/revocation store.
 
 ## Docker Compose
 
@@ -298,13 +347,14 @@ All application APIs are under `/api`.
 
 | Area | Representative routes |
 | --- | --- |
-| Authentication | `/auth/register`, `/auth/verify-email-otp`, `/auth/resend-email-otp`, `/auth/login` |
+| Authentication | `/auth/register`, `/auth/verify-email-otp`, `/auth/resend-email-otp`, `/auth/login`, `/auth/forgot-password`, `/auth/reset-password`, `/auth/oauth/exchange` |
 | Users and progress | `/users/me`, `PUT /users/me/theme`, `/users/me/progress`, `/users/leaderboard` |
 | Problems | `/problems/library`, `/problems/{id}`, `/problems/{id}/navigation` |
 | Test cases | `/problems/{problemId}/testcases` |
 | Execution | `/execution-test/run`, `/execution-test/java`, `/execution-test/cpp`, `/execution-test/python` |
 | Submissions | `/submissions?problemId=…&language=…`, `/submissions/{id}` |
 | Learning and contests | `/bookmarks`, `/lists`, `/collections`, `/learning-paths`, `/daily-challenges`, `/contests` |
+| Verdixa Assistant | `/assistant/public/chat`, `/assistant/chat`, `/admin/assistant/chat` |
 | Administration | `/admin/**`, `/users/**`, `/admin/users/{id}/analytics`, `/admin/problems/{id}/analytics`, `/admin/contests`, `/admin/contests/{id}`, administrative contest/problem/test-case routes |
 
 Refer to the controller classes under `backend/src/main/java/com/leetcode/backend/controller/` for request and response details.

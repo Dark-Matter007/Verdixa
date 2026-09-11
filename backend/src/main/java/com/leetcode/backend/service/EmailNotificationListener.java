@@ -19,6 +19,10 @@ public class EmailNotificationListener {
         attempt(() -> emailService.sendVerificationCode(event.email(), event.username(), event.otp()), "verification");
     }
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void passwordResetIssued(EmailNotificationEvents.PasswordResetOtpIssued event) {
+        attempt(() -> emailService.sendPasswordResetCode(event.email(), event.username(), event.otp()), "password reset");
+    }
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void accountVerified(EmailNotificationEvents.AccountVerified event) {
         attempt(() -> emailService.sendWelcome(event.email(), event.username()), "welcome");
     }

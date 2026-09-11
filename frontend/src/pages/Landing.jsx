@@ -3,6 +3,7 @@ import { ArrowRight, BookOpen, Braces, Check, ChevronRight, Code2, Crown, Gauge,
 import { Link } from "react-router-dom";
 import BrandLogo from "../components/BrandLogo";
 import ThemeToggle from "../components/ThemeToggle";
+import VerdixaAssistant from "../components/VerdixaAssistant";
 import "./Landing.css";
 
 const languageSamples = {
@@ -75,6 +76,6 @@ export default function Landing() {
 
       <section className="landing-final"><div><span>VERDIXA / READY WHEN YOU ARE</span><h2>Turn each attempt<br/>into <em>better judgment.</em></h2></div><div><p>Begin with a problem. Leave with a system for solving the next one.</p><div><Link className="landing-button landing-button--primary" to="/register">Create your workspace <ArrowRight size={17}/></Link><Link className="landing-button landing-button--quiet" to="/login">Sign in</Link></div></div></section>
     </div>
-    <footer className="landing-footer"><div className="landing-footer-brand"><BrandLogo compact/><strong>Verdixa</strong><p>Practice with precision. Compete with context.</p></div><div><span>PRODUCT</span><a href="#platform">Platform</a><a href="#judge">Judge</a><a href="#contests">Contests</a></div><div><span>EXPLORE</span><Link to="/login">Practice</Link><Link to="/login">Leaderboard</Link><Link to="/login">Sign in</Link></div><small>© {new Date().getFullYear()} Verdixa. Built for disciplined problem solving.</small></footer>
+    <footer className="landing-footer"><div className="landing-footer-brand"><BrandLogo compact/><strong>Verdixa</strong><p>Practice with precision. Compete with context.</p></div><div><span>PRODUCT</span><a href="#platform">Platform</a><a href="#judge">Judge</a><a href="#contests">Contests</a></div><div><span>EXPLORE</span><Link to="/login">Practice</Link><Link to="/login">Leaderboard</Link><Link to="/login">Sign in</Link></div><small>© {new Date().getFullYear()} Verdixa. Built for disciplined problem solving.</small></footer><VerdixaAssistant mode="public" />
   </main>;
 }

@@ -14,6 +14,8 @@ import {
   Minimize2,
   RotateCcw,
   Bookmark,
+  ShieldCheck,
+  TriangleAlert,
 } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import api from "../services/api";
@@ -28,6 +30,7 @@ function ProblemSolver() {
   const navigate = useNavigate();
   const location = useLocation();
   const contestId = new URLSearchParams(location.search).get("contest");
+  const contestWorkspace = new URLSearchParams(location.search).get("workspace") === "1";
   const { theme } = useContext(ThemeContext);
 
   const [problem, setProblem] = useState(null);
@@ -47,12 +50,24 @@ function ProblemSolver() {
   const [activePanel, setActivePanel] = useState("description");
   const [personalLists, setPersonalLists] = useState([]);
   const [navigation, setNavigation] = useState({});
+  const [contest, setContest] = useState(null);
+  const [contestProblems, setContestProblems] = useState([]);
+  const [focusWarning, setFocusWarning] = useState("");
+  const [remainingSeconds, setRemainingSeconds] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
   const [submissions, setSubmissions] = useState([]);
   const [error, setError] = useState("");
+
+  const loadContestWorkspace = useCallback(async () => {
+    if (!contestId) return;
+    try {
+      const [contestResponse, problemsResponse] = await Promise.all([api.get(`/contests/${contestId}`), api.get(`/contests/${contestId}/problems`)]);
+      setContest(contestResponse.data); setContestProblems(problemsResponse.data || []);
+    } catch (reason) { setFocusWarning(reason.response?.data?.message || "Contest status could not be refreshed."); }
+  }, [contestId]);
 
   const fetchSubmissionHistory = useCallback(async () => {
     try {
@@ -76,13 +91,15 @@ function ProblemSolver() {
       const data = response.data;
 
       setProblem(data);
-      api.get(`/problems/${id}/navigation`).then((value) => setNavigation(value.data || {})).catch(() => setNavigation({}));
-      api.get("/lists").then((value) => setPersonalLists(value.data || [])).catch(() => setPersonalLists([]));
-      api.get(`/problems/${id}/editorial`).then((value) => setEditorial(value.data)).catch(() => setEditorial(null));
-      api.get(`/problems/${id}/hints`).then((value) => setHintData(Array.isArray(value.data) ? EMPTY_HINTS : value.data || EMPTY_HINTS)).catch(() => setHintData(EMPTY_HINTS));
-      api.get(`/problems/${id}/note`).then((value) => setNote(value.data.content || "")).catch(() => setNote(""));
-      const bookmarkResponse = await api.get(`/bookmarks/${id}`);
-      setBookmarked(Boolean(bookmarkResponse.data));
+      if (!contestWorkspace) {
+        api.get(`/problems/${id}/navigation`).then((value) => setNavigation(value.data || {})).catch(() => setNavigation({}));
+        api.get("/lists").then((value) => setPersonalLists(value.data || [])).catch(() => setPersonalLists([]));
+        api.get(`/problems/${id}/editorial`).then((value) => setEditorial(value.data)).catch(() => setEditorial(null));
+        api.get(`/problems/${id}/hints`).then((value) => setHintData(Array.isArray(value.data) ? EMPTY_HINTS : value.data || EMPTY_HINTS)).catch(() => setHintData(EMPTY_HINTS));
+        api.get(`/problems/${id}/note`).then((value) => setNote(value.data.content || "")).catch(() => setNote(""));
+        const bookmarkResponse = await api.get(`/bookmarks/${id}`);
+        setBookmarked(Boolean(bookmarkResponse.data));
+      }
 
       const defaults = {
         java: `public class Solution {
@@ -138,7 +155,7 @@ function ProblemSolver() {
     } finally {
       setLoading(false);
     }
-  }, [id, navigate, location.state, contestId]);
+  }, [id, navigate, location.state, contestId, contestWorkspace]);
 
   const runCode = async (caseIndex = null) => {
     if (!sourceCode.trim()) {
@@ -231,6 +248,17 @@ function ProblemSolver() {
     fetchSubmissionHistory();
   }, [fetchProblem, fetchSubmissionHistory, navigate]);
 
+  useEffect(() => { loadContestWorkspace(); }, [loadContestWorkspace]);
+  useEffect(() => {
+    if (!contestWorkspace || !contest?.endAt) return;
+    const refresh = () => setRemainingSeconds(Math.max(0, Math.ceil((new Date(contest.endAt).getTime() - Date.now()) / 1000)));
+    refresh(); const timer = window.setInterval(refresh, 1000);
+    const onFullscreenChange = () => { if (!document.fullscreenElement) setFocusWarning("Focus mode was exited. You can continue, but re-enter fullscreen to reduce distractions."); };
+    const onVisibility = () => { if (document.hidden) setFocusWarning("Focus mode detected that this tab lost visibility. Contest timing continues on the server."); };
+    document.addEventListener("fullscreenchange", onFullscreenChange); document.addEventListener("visibilitychange", onVisibility);
+    return () => { window.clearInterval(timer); document.removeEventListener("fullscreenchange", onFullscreenChange); document.removeEventListener("visibilitychange", onVisibility); };
+  }, [contestWorkspace, contest]);
+
   const submitCode = async () => {
     if (!sourceCode.trim()) {
       setError("Please enter some code.");
@@ -249,9 +277,10 @@ function ProblemSolver() {
       );
 
       setResult(response.data);
-      api.get(`/problems/${id}/editorial`).then(value=>setEditorial(value.data)).catch(()=>setEditorial(null));
+      if (contestId) loadContestWorkspace();
+      if (!contestWorkspace) api.get(`/problems/${id}/editorial`).then(value=>setEditorial(value.data)).catch(()=>setEditorial(null));
       fetchSubmissionHistory();
-      api.get(`/problems/${id}/hints`).then((value) => { if (!Array.isArray(value.data)) setHintData(value.data); }).catch(() => {});
+      if (!contestWorkspace) api.get(`/problems/${id}/hints`).then((value) => { if (!Array.isArray(value.data)) setHintData(value.data); }).catch(() => {});
     } catch (err) {
       console.error("Submission failed:", err);
       if (err.response?.status === 401) setError("Your session expired. Please sign in again.");
@@ -316,21 +345,25 @@ function ProblemSolver() {
   const displayedFunctionName = language === "python" ? functionSignature.functionName.replace(/([a-z0-9])([A-Z])/g,"$1_$2").toLowerCase() : functionSignature.functionName;
   const tags = Array.isArray(problem.tags) ? problem.tags : typeof problem.tags === "string" ? problem.tags.split(",") : [];
   const placeholderFor = (type) => ({String:'"hello"',int:"42",Integer:"42",long:"42",double:"3.14",boolean:"true","int[]":"[1,2,3]","long[]":"[1,2,3]","double[]":"[1.5,2.5]","String[]":'["a","b"]'}[type] || "JSON value");
+  const formatRemaining = (seconds) => { if (seconds === null) return "--:--"; const hours = Math.floor(seconds / 3600); return `${hours ? `${String(hours).padStart(2, "0")}:` : ""}${String(Math.floor((seconds % 3600) / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`; };
+  const leaveContest = () => navigate(`/contests/${contestId}`);
 
   return (
-    <div className={`solver-page ${editorExpanded ? "editor-expanded" : ""}`}>
+    <div className={`solver-page ${editorExpanded ? "editor-expanded" : ""} ${contestWorkspace ? "contest-solver" : ""}`}>
 
       <header className="solver-navbar">
 
         <button
           className="solver-back"
-          onClick={() => navigate("/dashboard")}
+          onClick={() => contestId ? leaveContest() : navigate("/dashboard")}
         >
           <ArrowLeft size={19} />
-          Problems
+          {contestId ? "Contest" : "Problems"}
         </button>
 
-        <div className="solver-brand"><BrandLogo compact /><strong>Verdixa</strong></div>
+        <div className="solver-brand"><BrandLogo compact /><strong>{contestWorkspace ? contest?.title || "Contest focus" : "Verdixa"}</strong></div>
+
+        {contestWorkspace && <div className="contest-workspace-status"><ShieldCheck size={14}/><span>Focus mode</span><strong>{formatRemaining(remainingSeconds)}</strong></div>}
 
         <div className="solver-language">
           <select
@@ -345,6 +378,9 @@ function ProblemSolver() {
         <UserAccountMenu />
 
       </header>
+
+      {contestWorkspace && <section className="contest-workspace-tabs" aria-label="Contest problems"><div className="contest-workspace-tabs-label"><ShieldCheck size={14}/> Server-timed workspace</div>{contestProblems.map((contestProblem, index) => <button key={contestProblem.id} className={`${Number(id) === contestProblem.problemId ? "active" : ""} ${contestProblem.status === "COMPLETED" ? "completed" : ""}`} onClick={() => navigate(`/problems/${contestProblem.problemId}?contest=${contestId}&workspace=1`)} aria-current={Number(id) === contestProblem.problemId ? "page" : undefined}><span>{String.fromCharCode(65 + (contestProblem.displayOrder || index + 1) - 1)}</span>{contestProblem.status === "COMPLETED" && <CheckCircle2 size={14}/>}</button>)}<button className="contest-workspace-results" onClick={leaveContest}>Results</button></section>}
+      {contestWorkspace && focusWarning && <div className="contest-focus-warning" role="status"><TriangleAlert size={16}/>{focusWarning}<button onClick={() => setFocusWarning("")}>Dismiss</button></div>}
 
       <main className="solver-container">
 
@@ -366,17 +402,17 @@ function ProblemSolver() {
               {problem.difficulty}
             </span>
 
-            <button className={`problem-bookmark ${bookmarked ? "active" : ""}`} onClick={toggleBookmark} aria-label={bookmarked ? "Remove bookmark" : "Bookmark problem"}>
+            {!contestWorkspace && <><button className={`problem-bookmark ${bookmarked ? "active" : ""}`} onClick={toggleBookmark} aria-label={bookmarked ? "Remove bookmark" : "Bookmark problem"}>
               <Bookmark size={18} fill={bookmarked ? "currentColor" : "none"} />
             </button>
             {personalLists.length > 0 && <select aria-label="Add problem to list" defaultValue="" onChange={(event) => addToList(event.target.value)}><option value="" disabled>Add to list…</option>{personalLists.map((list) => <option key={list.id} value={list.id}>{list.name}</option>)}</select>}
-            <div className="problem-navigation"><button disabled={!navigation.previous} onClick={() => navigation.previous && navigate(`/problems/${navigation.previous.id}`)}>Previous</button><button disabled={!navigation.next} onClick={() => navigation.next && navigate(`/problems/${navigation.next.id}`)}>Next</button></div>
+            <div className="problem-navigation"><button disabled={!navigation.previous} onClick={() => navigation.previous && navigate(`/problems/${navigation.previous.id}`)}>Previous</button><button disabled={!navigation.next} onClick={() => navigation.next && navigate(`/problems/${navigation.next.id}`)}>Next</button></div></>}
 
           </div>
 
           <div className="problem-description">
 
-            <div className="problem-tabs" role="tablist"><button role="tab" aria-selected={activePanel === "description"} className={activePanel === "description" ? "active" : ""} onClick={() => setActivePanel("description")}>Description</button><button role="tab" aria-selected={activePanel === "hints"} className={activePanel === "hints" ? "active" : ""} onClick={() => setActivePanel("hints")}>Hints {hintData.total ? `(${hintData.unlocked}/${hintData.total})` : ""}</button><button role="tab" aria-selected={activePanel === "editorial"} className={activePanel === "editorial" ? "active" : ""} onClick={() => setActivePanel("editorial")}>Editorial</button><button role="tab" aria-selected={activePanel === "notes"} className={activePanel === "notes" ? "active" : ""} onClick={() => setActivePanel("notes")}>My Notes</button></div>
+            <div className="problem-tabs" role="tablist"><button role="tab" aria-selected={activePanel === "description"} className={activePanel === "description" ? "active" : ""} onClick={() => setActivePanel("description")}>Description</button>{!contestWorkspace && <><button role="tab" aria-selected={activePanel === "hints"} className={activePanel === "hints" ? "active" : ""} onClick={() => setActivePanel("hints")}>Hints {hintData.total ? `(${hintData.unlocked}/${hintData.total})` : ""}</button><button role="tab" aria-selected={activePanel === "editorial"} className={activePanel === "editorial" ? "active" : ""} onClick={() => setActivePanel("editorial")}>Editorial</button><button role="tab" aria-selected={activePanel === "notes"} className={activePanel === "notes" ? "active" : ""} onClick={() => setActivePanel("notes")}>My Notes</button></>}</div>
 
             {activePanel === "hints" && <div className="editorial-panel hints-panel"><p className="hint-summary">{hintData.total ? `${hintData.unlocked} of ${hintData.total} hints revealed · ${hintData.attempts} submission attempt${hintData.attempts === 1 ? "" : "s"} on this problem.` : "No hints are configured for this problem."}</p>{hintData.hints.map((hint, index) => <article className={`hint-card ${hint.revealed ? "revealed" : hint.available ? "available" : "locked"}`} key={hint.id}><h3>{hint.revealed ? hint.title : `Hint ${index + 1}`}</h3>{hint.revealed ? <><p>{hint.content}</p>{hint.penaltyPoints > 0 && <small>Penalty applied: {hint.penaltyPoints} points</small>}</> : hint.available ? <><p>Available to reveal{hint.penaltyPoints > 0 ? ` · ${hint.penaltyPoints}-point penalty` : ""}.</p><button className="secondary-button" onClick={() => hint.penaltyPoints > 0 ? setPendingHint(hint) : revealHint(hint)}>Reveal hint</button></> : <><p>{Math.min(hintData.attempts, hint.attemptsRequired)} of {hint.attemptsRequired} attempts completed</p><small className="hint-unlock-status">Available after {hint.attemptsRemaining} more attempt{hint.attemptsRemaining === 1 ? "" : "s"}.</small></>}</article>)}{pendingHint && <div className="hint-confirm" role="dialog" aria-modal="true" aria-label="Confirm hint reveal"><p>Revealing this hint applies a {pendingHint.penaltyPoints}-point penalty. Continue?</p><button className="secondary-button" onClick={() => setPendingHint(null)}>Cancel</button><button className="submit-button" onClick={() => revealHint(pendingHint)}>Reveal hint</button></div>}</div>}
             {activePanel === "editorial" && <div className="editorial-panel"><EditorialPanel key={id} problemId={id} access={editorial} onChange={setEditorial}/></div>}

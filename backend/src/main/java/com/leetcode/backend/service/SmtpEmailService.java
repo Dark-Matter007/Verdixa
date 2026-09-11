@@ -74,6 +74,16 @@ public class SmtpEmailService implements EmailService {
     }
 
     @Override
+    public void sendPasswordResetCode(String recipient, String username, String otp) {
+        String safeName = escape(username);
+        send(recipient, "Your Verdixa password reset code",
+                "Hello " + username + ",\n\nYour Verdixa password reset code is " + otp
+                        + ". It expires in 10 minutes. If you did not request this, you can ignore this email.",
+                layout("Reset your password", "Hello " + safeName + ",", "Use this code to reset your Verdixa password. It expires in 10 minutes.",
+                        "<div class=\"code\">" + otp + "</div><p class=\"muted\">If you did not request this, you can ignore this email.</p>"));
+    }
+
+    @Override
     public void sendWelcome(String recipient, String username) {
         String safeName = escape(username);
         String login = frontendBaseUrl + "/login";

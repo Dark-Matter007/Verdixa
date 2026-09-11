@@ -1,0 +1,19 @@
+package com.leetcode.backend.service;
+
+public enum VerdixaAssistantScope {
+    PUBLIC_HELP,
+    PUBLIC_BENEFITS,
+    USER_DATA,
+    USER_SUMMARY,
+    USER_SUBMISSIONS,
+    USER_CONTESTS,
+    USER_CERTIFICATES,
+    ADMIN_DATA,
+    ADMIN_SUMMARY,
+    VERDIXA_EXPLANATION,
+    VERDIXA_NAVIGATION,
+    UNKNOWN_VERDIXA_HELP,
+    ADMIN_ACTION,
+    OUT_OF_SCOPE,
+    SENSITIVE_REQUEST
+}

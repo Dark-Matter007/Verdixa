@@ -58,7 +58,7 @@ test("deleting the selected contest updates list and selection", async () => {
   fireEvent.click(screen.getAllByRole("button", { name:/delete contest/i })[1]);
   await waitFor(() => expect(api.delete).toHaveBeenCalledWith("/admin/contests/1"));
   await waitFor(() => expect(screen.queryByRole("listitem", { name:/weekly challenge/i })).not.toBeInTheDocument());
-  expect(await screen.findByText("Monthly Sprint")).toBeInTheDocument();
+  expect(await screen.findByRole("listitem", { name:/monthly sprint/i })).toHaveAttribute("aria-pressed", "true");
 });
 
 test("renders registry error state", async () => {
