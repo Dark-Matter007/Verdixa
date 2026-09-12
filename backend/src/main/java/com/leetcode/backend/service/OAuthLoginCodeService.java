@@ -32,7 +32,7 @@ public class OAuthLoginCodeService {
         if (entry.getConsumedAt() != null || !LocalDateTime.now().isBefore(entry.getExpiresAt())) throw new IllegalArgumentException("Your sign-in session expired. Please try again.");
         entry.setConsumedAt(LocalDateTime.now()); codes.save(entry);
         User user = entry.getUser();
-        return new AuthResponse("Login successful", user.getUsername(), user.getRole().name(), jwtService.generateToken(user.getUsername(), user.getRole().name()));
+        return new AuthResponse("Login successful", user.getUsername(), user.getRole().name(), jwtService.generateToken(user));
     }
 
     private String hash(String value) { try { return java.util.HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8))); } catch (NoSuchAlgorithmException e) { throw new IllegalStateException(e); } }

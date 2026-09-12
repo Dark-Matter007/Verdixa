@@ -33,6 +33,7 @@ import AdminLearningPaths from "./pages/AdminLearningPaths";
 import AdminDailyChallenges from "./pages/AdminDailyChallenges";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Landing from "./pages/Landing";
+import ProfileSettings from "./pages/ProfileSettings";
 
 import Certificates from "./pages/Certificates";
 import CertificateVerification from "./pages/CertificateVerification";
@@ -91,6 +92,7 @@ function App() {
           element={<ProtectedRoute allowedRoles={["USER"]}><UserProfile /></ProtectedRoute>}
         />
         <Route path="/progress" element={<ProtectedRoute allowedRoles={["USER"]}><UserProfile /></ProtectedRoute>} />
+        <Route path="/profile/edit" element={<ProtectedRoute allowedRoles={["USER"]}><ProfileSettings /></ProtectedRoute>} />
 
         <Route
           path="/leaderboard"
@@ -133,6 +135,7 @@ function App() {
         <Route path="/admin/contests" element={<ProtectedRoute allowedRoles={["ADMIN"]}><AdminContests /></ProtectedRoute>} />
         <Route path="/admin/users/:id" element={<ProtectedRoute allowedRoles={["ADMIN"]}><AdminUserDetail /></ProtectedRoute>} />
         <Route path="/admin/problems/:id/analytics" element={<ProtectedRoute allowedRoles={["ADMIN"]}><AdminProblemAnalytics /></ProtectedRoute>} />
+        <Route path="/admin/profile/edit" element={<ProtectedRoute allowedRoles={["ADMIN"]}><ProfileSettings /></ProtectedRoute>} />
 
         <Route
           path="*"

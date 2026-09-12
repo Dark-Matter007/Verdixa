@@ -20,8 +20,8 @@ class OAuthAccountServiceTest {
 
     @Test void verifiedGoogleIdentityCreatesVerifiedUserWithoutPassword() {
         when(accounts.findByProviderAndProviderUserId(OAuthProvider.GOOGLE, "google-subject")).thenReturn(Optional.empty());
-        when(users.findByEmail("ada@example.com")).thenReturn(Optional.empty());
-        when(users.existsByUsername(anyString())).thenReturn(false);
+        when(users.findByEmailIgnoreCase("ada@example.com")).thenReturn(Optional.empty());
+        when(users.existsByUsernameIgnoreCase(anyString())).thenReturn(false);
         when(users.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         User result = service.resolve(new OAuthIdentity(OAuthProvider.GOOGLE, "google-subject", "Ada@Example.com", true, "Ada Lovelace", null));
@@ -35,7 +35,7 @@ class OAuthAccountServiceTest {
     @Test void matchingExistingAdminIsLinkedWithoutChangingRole() {
         User admin = new User("admin", "admin@example.com", "hash", Role.ADMIN); admin.setEmailVerified(true);
         when(accounts.findByProviderAndProviderUserId(OAuthProvider.GITHUB, "99")).thenReturn(Optional.empty());
-        when(users.findByEmail("admin@example.com")).thenReturn(Optional.of(admin));
+        when(users.findByEmailIgnoreCase("admin@example.com")).thenReturn(Optional.of(admin));
 
         User result = service.resolve(new OAuthIdentity(OAuthProvider.GITHUB, "99", "admin@example.com", true, "Admin", "admin"));
 

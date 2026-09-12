@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import com.leetcode.backend.model.User;
 
 @Service
 public class JwtService {
@@ -27,7 +28,7 @@ public class JwtService {
         );
     }
 
-    public String generateToken(String username, String role) {
+    public String generateToken(User user) {
 
         Date now = new Date();
         Date expiration = new Date(
@@ -35,19 +36,20 @@ public class JwtService {
         );
 
         return Jwts.builder()
-                .subject(username)
-                .claim("role", role)
+                .subject(String.valueOf(user.getId()))
+                .claim("uid", user.getId())
+                .claim("username", user.getUsername())
+                .claim("role", user.getRole().name())
+                .claim("ver", user.getAuthVersion())
                 .issuedAt(now)
                 .expiration(expiration)
                 .signWith(key)
                 .compact();
     }
 
-    public String extractUsername(String token) {
+    public Long extractUserId(String token) { return numberClaim(token, "uid").longValue(); }
 
-        return getClaims(token)
-                .getSubject();
-    }
+    public long extractAuthVersion(String token) { return numberClaim(token, "ver").longValue(); }
 
     public String extractRole(String token) {
 
@@ -63,6 +65,23 @@ public class JwtService {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public boolean isTokenValidFor(String token, User user) {
+        try {
+            return isTokenValid(token)
+                    && user.getId().equals(extractUserId(token))
+                    && user.getAuthVersion() == extractAuthVersion(token)
+                    && user.getRole().name().equals(extractRole(token));
+        } catch (Exception exception) {
+            return false;
+        }
+    }
+
+    private Number numberClaim(String token, String name) {
+        Object value = getClaims(token).get(name);
+        if (value instanceof Number number) return number;
+        throw new IllegalArgumentException("Missing numeric JWT claim.");
     }
 
     private Claims getClaims(String token) {

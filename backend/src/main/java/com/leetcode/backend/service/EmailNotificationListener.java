@@ -27,6 +27,34 @@ public class EmailNotificationListener {
         attempt(() -> emailService.sendWelcome(event.email(), event.username()), "welcome");
     }
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void usernameChangeOtp(EmailNotificationEvents.UsernameChangeOtpIssued event) {
+        attempt(() -> emailService.sendUsernameChangeCode(event.email(), event.username(), event.requestedUsername(), event.otp()), "username change code");
+    }
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void usernameChanged(EmailNotificationEvents.UsernameChanged event) {
+        attempt(() -> emailService.sendUsernameChanged(event.email(), event.previousUsername(), event.newUsername()), "username changed notice");
+    }
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void emailChangeCurrentOtp(EmailNotificationEvents.EmailChangeCurrentOtpIssued event) {
+        attempt(() -> emailService.sendEmailChangeCurrentCode(event.email(), event.username(), event.requestedEmail(), event.otp()), "current email confirmation");
+    }
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void emailChangeNewOtp(EmailNotificationEvents.EmailChangeNewOtpIssued event) {
+        attempt(() -> emailService.sendEmailChangeNewCode(event.email(), event.username(), event.otp()), "new email verification");
+    }
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void emailChanged(EmailNotificationEvents.EmailChanged event) {
+        attempt(() -> emailService.sendEmailChangedNotice(event.previousEmail(), event.username(), event.newEmail()), "email changed notice");
+    }
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void passwordSetupOtp(EmailNotificationEvents.PasswordSetupOtpIssued event) {
+        attempt(() -> emailService.sendPasswordSetupCode(event.email(), event.username(), event.otp()), "password setup code");
+    }
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void passwordChanged(EmailNotificationEvents.PasswordChanged event) {
+        attempt(() -> emailService.sendPasswordChangedNotice(event.email(), event.username()), "password changed notice");
+    }
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void contestRegistered(EmailNotificationEvents.ContestRegistered event) {
         attempt(() -> emailService.sendContestRegistration(event.email(), event.username(), event.title(), event.description(), event.startAt(), event.endAt(), event.problemCount(), event.contestId()), "contest registration");
     }

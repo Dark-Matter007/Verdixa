@@ -96,6 +96,48 @@ public class SmtpEmailService implements EmailService {
     }
 
     @Override
+    public void sendUsernameChangeCode(String recipient, String username, String requestedUsername, String otp) {
+        sendSecurityCode(recipient, username, "Authorize your username change", "username change", otp,
+                "This code authorizes changing your Verdixa username to " + requestedUsername + ".");
+    }
+
+    @Override
+    public void sendUsernameChanged(String recipient, String previousUsername, String newUsername) {
+        sendSecurityNotice(recipient, "Your Verdixa username was changed", newUsername,
+                "The username for this account changed from " + previousUsername + " to " + newUsername + ". If this was not you, secure your email account and contact support.");
+    }
+
+    @Override
+    public void sendEmailChangeCurrentCode(String recipient, String username, String requestedEmail, String otp) {
+        sendSecurityCode(recipient, username, "Confirm your email change", "email change", otp,
+                "This code confirms that you authorized changing your Verdixa email to " + requestedEmail + ".");
+    }
+
+    @Override
+    public void sendEmailChangeNewCode(String recipient, String username, String otp) {
+        sendSecurityCode(recipient, username, "Verify your new email", "new email verification", otp,
+                "Use this code to prove ownership of this email address before Verdixa updates your account.");
+    }
+
+    @Override
+    public void sendEmailChangedNotice(String recipient, String username, String newEmail) {
+        sendSecurityNotice(recipient, "Your Verdixa email was changed", username,
+                "The registered email for this account was changed to " + newEmail + ". If this was not you, secure your account immediately.");
+    }
+
+    @Override
+    public void sendPasswordSetupCode(String recipient, String username, String otp) {
+        sendSecurityCode(recipient, username, "Set a Verdixa password", "password setup", otp,
+                "This code authorizes adding a local password while keeping your connected sign-in methods active.");
+    }
+
+    @Override
+    public void sendPasswordChangedNotice(String recipient, String username) {
+        sendSecurityNotice(recipient, "Your Verdixa password was updated", username,
+                "The local password for this account was updated. If this was not you, secure your email account and reset your password immediately.");
+    }
+
+    @Override
     public void sendContestRegistration(String recipient, String username, String contestTitle,
                                         String description, LocalDateTime startAt, LocalDateTime endAt,
                                         int problemCount, Long contestId) {
@@ -128,6 +170,20 @@ public class SmtpEmailService implements EmailService {
         } catch (Exception exception) {
             throw new IllegalStateException("Email delivery failed.", exception);
         }
+    }
+
+    private void sendSecurityCode(String recipient, String username, String heading, String action, String otp, String explanation) {
+        send(recipient, heading + " | Verdixa",
+                "Hello " + username + ",\n\n" + explanation + " Your code is " + otp
+                        + ". It expires in 10 minutes. If you did not request this, do not share the code.",
+                layout(heading, "Hello " + escape(username) + ",", escape(explanation) + " It expires in 10 minutes.",
+                        "<div class=\"code\">" + otp + "</div><p class=\"muted\">If you did not request this " + escape(action) + ", do not share the code.</p>"));
+    }
+
+    private void sendSecurityNotice(String recipient, String subject, String username, String explanation) {
+        send(recipient, subject,
+                "Hello " + username + ",\n\n" + explanation,
+                layout("Security notice", "Hello " + escape(username) + ",", escape(explanation), ""));
     }
 
     private String format(LocalDateTime dateTime) { return dateTime.atZone(appZone).format(DATE_TIME); }

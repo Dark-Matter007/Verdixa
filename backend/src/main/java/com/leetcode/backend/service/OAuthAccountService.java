@@ -25,7 +25,7 @@ public class OAuthAccountService {
         UserOAuthAccount linked = accounts.findByProviderAndProviderUserId(identity.provider(), identity.providerUserId()).orElse(null);
         if (linked != null) return linked.getUser();
 
-        User user = users.findByEmail(email).orElseGet(() -> createUser(identity, email));
+        User user = users.findByEmailIgnoreCase(email).orElseGet(() -> createUser(identity, email));
         UserOAuthAccount account = new UserOAuthAccount();
         account.setUser(user); account.setProvider(identity.provider()); account.setProviderUserId(identity.providerUserId());
         account.setProviderEmail(email); account.setCreatedAt(LocalDateTime.now()); account.setUpdatedAt(LocalDateTime.now());
@@ -46,7 +46,7 @@ public class OAuthAccountService {
         if (base.length() < 3) base = "verdixa_user";
         if (base.length() > 88) base = base.substring(0, 88);
         String candidate = base;
-        for (int suffix = 2; users.existsByUsername(candidate); suffix++) candidate = base.substring(0, Math.min(base.length(), 100 - String.valueOf(suffix).length())) + suffix;
+        for (int suffix = 2; users.existsByUsernameIgnoreCase(candidate); suffix++) candidate = base.substring(0, Math.min(base.length(), 100 - String.valueOf(suffix).length())) + suffix;
         return candidate;
     }
 

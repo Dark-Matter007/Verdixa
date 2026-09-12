@@ -33,6 +33,7 @@ export default function UserAccountMenu() {
         <button role="menuitem" onClick={() => go("/dashboard")}><LayoutDashboard size={15} />Dashboard</button>
         <button role="menuitem" onClick={() => go("/profile")}><UserRound size={15} />Profile</button>
       </>}
+      <button role="menuitem" onClick={() => go(role === "ADMIN" ? "/admin/profile/edit" : "/profile/edit")}><UserRound size={15} />Edit profile</button>
       <button role="menuitem" className="vx-account-signout" onClick={logout}><LogOut size={15} />Sign out</button>
     </div>}
   </div>;

@@ -8,6 +8,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import com.leetcode.backend.service.EmailNotVerifiedException;
 import com.leetcode.backend.service.OtpVerificationException;
+import com.leetcode.backend.service.ProfileVerificationException;
 
 import java.util.Map;
 
@@ -19,6 +20,10 @@ public class ApiExceptionHandler {
     }
     @ExceptionHandler(OtpVerificationException.class)
     public ResponseEntity<Map<String, String>> invalidOtp(OtpVerificationException exception) {
+        return ResponseEntity.badRequest().body(Map.of("message", exception.getMessage()));
+    }
+    @ExceptionHandler(ProfileVerificationException.class)
+    public ResponseEntity<Map<String, String>> invalidProfileOtp(ProfileVerificationException exception) {
         return ResponseEntity.badRequest().body(Map.of("message", exception.getMessage()));
     }
     @ExceptionHandler(MethodArgumentNotValidException.class)

@@ -36,6 +36,10 @@ public class User {
     @Column(name = "email_verified", nullable = false, columnDefinition = "boolean default true")
     private boolean emailVerified = true;
 
+    /** Incremented after identity or credential changes so previously issued JWTs stop working. */
+    @Column(name = "auth_version", nullable = false, columnDefinition = "bigint default 0")
+    private long authVersion = 0;
+
     public User() {
     }
 
@@ -89,4 +93,10 @@ public class User {
     public boolean isEmailVerified() { return emailVerified; }
 
     public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
+
+    public long getAuthVersion() { return authVersion; }
+
+    public void setAuthVersion(long authVersion) { this.authVersion = authVersion; }
+
+    public void incrementAuthVersion() { this.authVersion++; }
 }

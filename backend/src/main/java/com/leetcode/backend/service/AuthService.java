@@ -42,13 +42,13 @@ public class AuthService {
     /** Always returns normally for an existing email to avoid account enumeration. */
     @Transactional public void register(RegisterRequest request) {
         String email = normalizeEmail(request.getEmail());
-        Optional<User> byEmail = users.findByEmail(email);
+        Optional<User> byEmail = users.findByEmailIgnoreCase(email);
         if (byEmail.isPresent()) {
             User user = users.lockById(byEmail.get().getId()).orElseThrow();
             if (!user.isEmailVerified()) issueOtpIfAllowed(user);
             return;
         }
-        if (users.existsByUsername(request.getUsername().trim())) {
+        if (users.existsByUsernameIgnoreCase(request.getUsername().trim())) {
             throw new IllegalArgumentException("That username is already taken.");
         }
         User user = new User();
@@ -58,14 +58,14 @@ public class AuthService {
 
     /** Generic outcome is intentional, including for an unknown or already verified email. */
     @Transactional public void resendEmailOtp(String requestedEmail) {
-        users.findByEmail(normalizeEmail(requestedEmail)).ifPresent(candidate -> {
+        users.findByEmailIgnoreCase(normalizeEmail(requestedEmail)).ifPresent(candidate -> {
             User user = users.lockById(candidate.getId()).orElseThrow();
             if (!user.isEmailVerified()) issueOtpIfAllowed(user);
         });
     }
 
     @Transactional(noRollbackFor = OtpVerificationException.class) public void verifyEmailOtp(VerifyEmailOtpRequest request) {
-        User user = users.findByEmail(normalizeEmail(request.email())).flatMap(candidate -> users.lockById(candidate.getId())).orElseThrow(OtpVerificationException::new);
+        User user = users.findByEmailIgnoreCase(normalizeEmail(request.email())).flatMap(candidate -> users.lockById(candidate.getId())).orElseThrow(OtpVerificationException::new);
         if (user.isEmailVerified()) throw new OtpVerificationException();
         EmailVerificationToken token = tokens.findByUserIdForUpdate(user.getId()).orElseThrow(OtpVerificationException::new);
         LocalDateTime now = LocalDateTime.now();
@@ -78,16 +78,16 @@ public class AuthService {
     }
 
     public User authenticate(LoginRequest request) {
-        User user = users.findByUsername(request.getUsername().trim()).orElseThrow(() -> new IllegalArgumentException("Invalid username or password."));
+        User user = users.findByUsernameIgnoreCase(request.getUsername().trim()).orElseThrow(() -> new IllegalArgumentException("Invalid username or password."));
         if (user.getPassword() == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) throw new IllegalArgumentException("This account does not have a local password. Use a connected sign-in method or reset your password.");
         if (!user.isEmailVerified()) throw new EmailNotVerifiedException();
         return user;
     }
-    public String generateToken(User user) { return jwtService.generateToken(user.getUsername(), user.getRole().name()); }
+    public String generateToken(User user) { return jwtService.generateToken(user); }
 
     /** Always succeeds publicly to avoid revealing whether an address owns an account. */
     @Transactional public void requestPasswordReset(String requestedEmail) {
-        users.findByEmail(normalizeEmail(requestedEmail)).ifPresent(candidate -> {
+        users.findByEmailIgnoreCase(normalizeEmail(requestedEmail)).ifPresent(candidate -> {
             User user = users.lockById(candidate.getId()).orElseThrow();
             issuePasswordResetIfAllowed(user);
         });
@@ -106,6 +106,7 @@ public class AuthService {
         validateResetToken(token, otp, true);
         User user = users.lockById(token.getUser().getId()).orElseThrow(OtpVerificationException::new);
         user.setPassword(passwordEncoder.encode(password));
+        user.incrementAuthVersion();
         token.setConsumedAt(LocalDateTime.now());
         users.save(user); resetTokens.save(token);
     }
@@ -113,7 +114,7 @@ public class AuthService {
     @Transactional public void resendPasswordReset(String requestedEmail) { requestPasswordReset(requestedEmail); }
 
     private PasswordResetToken resetToken(String requestedEmail) {
-        User user = users.findByEmail(normalizeEmail(requestedEmail)).flatMap(candidate -> users.lockById(candidate.getId())).orElseThrow(OtpVerificationException::new);
+        User user = users.findByEmailIgnoreCase(normalizeEmail(requestedEmail)).flatMap(candidate -> users.lockById(candidate.getId())).orElseThrow(OtpVerificationException::new);
         return resetTokens.findByUserIdForUpdate(user.getId()).orElseThrow(OtpVerificationException::new);
     }
     private void validateResetToken(PasswordResetToken token, String otp, boolean consume) {

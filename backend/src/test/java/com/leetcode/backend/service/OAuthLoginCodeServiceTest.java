@@ -28,7 +28,7 @@ class OAuthLoginCodeServiceTest {
         OAuthLoginCode entry = saved.getValue();
         assertNotEquals(browserCode, entry.getCodeHash()); assertTrue(entry.getExpiresAt().isAfter(LocalDateTime.now()));
         when(codes.findByCodeHashForUpdate(anyString())).thenReturn(Optional.of(entry));
-        when(jwtService.generateToken("ada", "USER")).thenReturn("verdixa-jwt");
+        when(jwtService.generateToken(user)).thenReturn("verdixa-jwt");
 
         AuthResponse response = service.exchange(browserCode);
 
