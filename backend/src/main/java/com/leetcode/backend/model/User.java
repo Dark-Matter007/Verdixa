@@ -40,6 +40,9 @@ public class User {
     @Column(name = "auth_version", nullable = false, columnDefinition = "bigint default 0")
     private long authVersion = 0;
 
+    @Column(name = "language_preference", nullable = false, length = 12, columnDefinition = "varchar(12) default 'en'")
+    private String languagePreference = "en";
+
     public User() {
     }
 
@@ -99,4 +102,8 @@ public class User {
     public void setAuthVersion(long authVersion) { this.authVersion = authVersion; }
 
     public void incrementAuthVersion() { this.authVersion++; }
+
+    public String getLanguagePreference() { return languagePreference; }
+
+    public void setLanguagePreference(String languagePreference) { this.languagePreference = languagePreference; }
 }

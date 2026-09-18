@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { ArrowUpRight, Plus } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ArrowUpRight, Plus, RefreshCw, Signal } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import AdminShell from "../components/AdminShell";
@@ -9,13 +9,15 @@ import { EmptyState, ErrorState, LoadingState } from "../components/PageState";
 export default function AdminDashboard() {
   const [certificateSummary,setCertificateSummary]=useState(null);
   useEffect(()=>{api.get("/admin/certificates/summary").then(r=>setCertificateSummary(r.data)).catch(()=>{});},[]);
-  const navigate = useNavigate(); const [problems, setProblems] = useState([]); const [statistics, setStatistics] = useState(null); const [loading, setLoading] = useState(true); const [error, setError] = useState("");
-  const load = useCallback(async () => { setLoading(true); setError(""); try { const [problemResponse, statisticsResponse] = await Promise.all([api.get("/problems/admin/all"), api.get("/admin/analytics")]); setProblems(problemResponse.data || []); setStatistics(statisticsResponse.data); } catch { setError("Administrative telemetry could not be retrieved."); } finally { setLoading(false); } }, []);
+  const navigate = useNavigate(); const [problems, setProblems] = useState([]); const [statistics, setStatistics] = useState(null); const [loading, setLoading] = useState(true); const [error, setError] = useState(""); const [updated,setUpdated]=useState(null); const running=useRef(false);
+  const load = useCallback(async () => { if(running.current)return;running.current=true;setError(""); try { const [problemResponse, statisticsResponse] = await Promise.all([api.get("/problems/admin/all"), api.get("/admin/analytics")]); setProblems(problemResponse.data || []); setStatistics(statisticsResponse.data);setUpdated(new Date()); } catch { setError("Administrative telemetry could not be retrieved."); } finally { running.current=false;setLoading(false); } }, []);
   useEffect(() => { if (localStorage.getItem("algosphere_role") !== "ADMIN") { navigate("/dashboard"); return; } load(); }, [load, navigate]);
-  const metrics = statistics ? [["Published Problems",statistics.publishedProblems],["Total Users",statistics.totalUsers],["Active / 30d",statistics.activeUsers],["Submissions",statistics.totalSubmissions],["Accepted",statistics.acceptedSubmissions],["Today",statistics.submissionsToday],["7 days",statistics.submissionsLast7Days],["Acceptance",`${statistics.acceptanceRate}%`]] : [];
-  return <AdminShell eyebrow="Control room / overview" title="Platform operations" description="Content integrity, user activity, and judge outcomes from persisted platform data." actions={<button className="primary-button" onClick={() => navigate("/admin/problems/new")}><Plus size={16}/> New problem</button>}>
+  useEffect(()=>{const timer=setInterval(()=>!document.hidden&&load(),15000);return()=>clearInterval(timer)},[load]);
+  const metrics = statistics ? [["Published Problems",statistics.publishedProblems],["Total Users",statistics.totalUsers],["Verified Users",statistics.verifiedUsers],["Active / 30d",statistics.activeUsers],["Submissions",statistics.totalSubmissions],["Accepted",statistics.acceptedSubmissions],["Contests",statistics.contests],["Contest registrations",statistics.contestRegistrations],["Public assessments",statistics.publicAssessments],["Private assessments",statistics.privateAssessments],["Pending creators",statistics.pendingCreatorRequests],["Acceptance",`${statistics.acceptanceRate}%`]] : [];
+  return <AdminShell eyebrow="Control room / overview" title="Platform operations" description="Content integrity, user activity, and judge outcomes from persisted platform data." actions={<><button className="secondary-button" onClick={load}><RefreshCw size={15}/>Refresh</button><button className="primary-button" onClick={() => navigate("/admin/problems/new")}><Plus size={16}/> New problem</button></>}>
     {error && <ErrorState message={error} onRetry={load}/>} {loading && <LoadingState label="Loading platform telemetry"/>}
     {!loading && statistics && <section className="vx-admin-metrics" aria-label="Platform statistics">{metrics.map(([label,value]) => <div key={label}><span>{label}</span><strong>{value}</strong></div>)}</section>}
+    {statistics&&<div className="vx-live-row"><span><Signal size={14}/>Live</span><small>Last updated: {updated?.toLocaleTimeString()}</small></div>}
     {certificateSummary && <section className="certificate-admin-summary"><h2>Certificates Issued</h2><dl>{[50,100,150].map(t=><div key={t}><dt>{t} Problem Certificates</dt><dd>{certificateSummary[t]}</dd></div>)}<div><dt>Total Certificates Issued</dt><dd>{certificateSummary.total}</dd></div></dl></section>}
     <section className="vx-admin-section"><div className="vx-library-header"><div><span className="vx-section-meta">Content integrity</span><h2 className="vx-section-title">Recently managed problems</h2></div><Link className="vx-text-link" to="/admin/problems">Full inventory</Link></div>
       {!loading && !problems.length && <EmptyState title="No problems created">Create the first problem to establish the content inventory.</EmptyState>}

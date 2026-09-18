@@ -45,6 +45,10 @@ public class AuthService {
         Optional<User> byEmail = users.findByEmailIgnoreCase(email);
         if (byEmail.isPresent()) {
             User user = users.lockById(byEmail.get().getId()).orElseThrow();
+            if (user.getRole() == Role.ASSESSMENT_GUEST) {
+                if (users.existsByUsernameIgnoreCase(request.getUsername().trim())) throw new IllegalArgumentException("That username is already taken.");
+                user.setUsername(request.getUsername().trim()); user.setPassword(passwordEncoder.encode(request.getPassword())); user.setRole(Role.USER); user.setEmailVerified(false); users.save(user); issueOtpIfAllowed(user); return;
+            }
             if (!user.isEmailVerified()) issueOtpIfAllowed(user);
             return;
         }
@@ -79,7 +83,7 @@ public class AuthService {
 
     public User authenticate(LoginRequest request) {
         User user = users.findByUsernameIgnoreCase(request.getUsername().trim()).orElseThrow(() -> new IllegalArgumentException("Invalid username or password."));
-        if (user.getPassword() == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) throw new IllegalArgumentException("This account does not have a local password. Use a connected sign-in method or reset your password.");
+        if (user.getRole() == Role.ASSESSMENT_GUEST || user.getPassword() == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) throw new IllegalArgumentException("Invalid username or password.");
         if (!user.isEmailVerified()) throw new EmailNotVerifiedException();
         return user;
     }
@@ -87,7 +91,7 @@ public class AuthService {
 
     /** Always succeeds publicly to avoid revealing whether an address owns an account. */
     @Transactional public void requestPasswordReset(String requestedEmail) {
-        users.findByEmailIgnoreCase(normalizeEmail(requestedEmail)).ifPresent(candidate -> {
+        users.findByEmailIgnoreCase(normalizeEmail(requestedEmail)).filter(candidate -> candidate.getRole() != Role.ASSESSMENT_GUEST).ifPresent(candidate -> {
             User user = users.lockById(candidate.getId()).orElseThrow();
             issuePasswordResetIfAllowed(user);
         });

@@ -14,7 +14,8 @@ function ProtectedRoute({ children, allowedRoles }) {
     return <Navigate to={role === "ADMIN" ? "/admin" : "/dashboard"} replace />;
   }
 
-  return <>{children}{role === "USER" && <VerdixaAssistant />}</>;
+  const assessmentFocusRoute = /^\/assessments\/\d+\/take$/.test(location.pathname) || /^\/assessment\/\d+\/preflight$/.test(location.pathname);
+  return <>{children}{role === "USER" && !assessmentFocusRoute && <VerdixaAssistant />}</>;
 }
 
 export default ProtectedRoute;

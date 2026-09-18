@@ -9,11 +9,25 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
+    // Multipart uploads need a browser-generated boundary. The API client has a
+    // JSON default for ordinary requests, so clear it before an upload leaves
+    // the browser instead of sending FormData as application/json.
+    if (typeof FormData !== "undefined" && config.data instanceof FormData) {
+      if (typeof config.headers?.setContentType === "function") {
+        config.headers.setContentType(undefined);
+      } else if (config.headers) {
+        delete config.headers["Content-Type"];
+        delete config.headers["content-type"];
+      }
+    }
+
     const token = localStorage.getItem("algosphere_token");
+    const assessmentGrant = sessionStorage.getItem("verdixa_assessment_grant");
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    if (assessmentGrant) config.headers["X-Assessment-Access"] = assessmentGrant;
 
     return config;
   },

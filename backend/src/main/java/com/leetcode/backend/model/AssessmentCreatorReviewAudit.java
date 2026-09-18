@@ -1,0 +1,6 @@
+package com.leetcode.backend.model;
+import jakarta.persistence.*; import java.time.LocalDateTime;
+@Entity @Table(name="assessment_creator_review_audits",indexes=@Index(name="idx_creator_audit_application",columnList="application_id,created_at")) public class AssessmentCreatorReviewAudit {
+ @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id; @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="actor_admin_id",nullable=false) private User actor; @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="application_id",nullable=false) private AssessmentCreatorApplication application; @Enumerated(EnumType.STRING) @Column(name="previous_status",nullable=false,length=30) private AssessmentEnums.CreatorStatus previousStatus; @Enumerated(EnumType.STRING) @Column(name="new_status",nullable=false,length=30) private AssessmentEnums.CreatorStatus newStatus; @Column(length=500) private String reason; @Column(name="created_at",nullable=false) private LocalDateTime createdAt; @PrePersist void create(){createdAt=LocalDateTime.now();}
+ public void setActor(User v){actor=v;} public void setApplication(AssessmentCreatorApplication v){application=v;} public void setPreviousStatus(AssessmentEnums.CreatorStatus v){previousStatus=v;} public void setNewStatus(AssessmentEnums.CreatorStatus v){newStatus=v;} public void setReason(String v){reason=v;}
+}

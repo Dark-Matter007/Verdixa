@@ -506,3 +506,14 @@ button {
     width: 100%;
   }
 }
+
+/* Assessment MCQs intentionally use existing workspace tokens in both themes. */
+.vx-mcq-author { margin-top: 18px; padding: 20px; border: 1px solid var(--vx-border); border-radius: 14px; background: var(--vx-surface); }
+.vx-mcq-author > header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+.vx-mcq-author > header button { border:0; background:transparent; color:var(--vx-crimson); cursor:pointer; font-weight:700; }
+.vx-mcq-author label { display:grid; gap:7px; color:var(--vx-text); font-weight:650; }
+.vx-mcq-take { max-width:900px; padding:18px; color:var(--vx-text); }
+.vx-mcq-take > div { display:grid; gap:12px; margin-top:24px; }
+.vx-mcq-take button { display:flex; gap:14px; align-items:center; width:100%; padding:16px; text-align:left; border:1px solid var(--vx-border); border-radius:12px; background:var(--vx-surface); color:var(--vx-text); cursor:pointer; }
+.vx-mcq-take button:hover,.vx-mcq-take button.selected { border-color:var(--vx-crimson); background:color-mix(in srgb,var(--vx-crimson) 10%,var(--vx-surface)); }
+.vx-mcq-take button b { display:grid; place-items:center; width:28px; height:28px; border-radius:50%; background:var(--vx-page); }

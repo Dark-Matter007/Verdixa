@@ -1,0 +1,3 @@
+package com.leetcode.backend.repository;
+import com.leetcode.backend.model.AssessmentProblem; import org.springframework.data.jpa.repository.*; import org.springframework.data.repository.query.Param; import java.util.*;
+public interface AssessmentProblemRepository extends JpaRepository<AssessmentProblem,Long>{List<AssessmentProblem> findByAssessmentIdOrderByDisplayOrderAsc(Long assessmentId); boolean existsByAssessmentIdAndProblemId(Long assessmentId,Long problemId); @Modifying(flushAutomatically=true) @Query("delete from AssessmentProblem link where link.assessment.id = :assessmentId") void deleteByAssessmentId(@Param("assessmentId") Long assessmentId);}

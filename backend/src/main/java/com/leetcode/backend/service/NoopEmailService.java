@@ -21,5 +21,12 @@ public class NoopEmailService implements EmailService {
     @Override public void sendPasswordSetupCode(String recipient, String username, String otp) { disabled("password setup code"); }
     @Override public void sendPasswordChangedNotice(String recipient, String username) { disabled("password changed notice"); }
     @Override public void sendContestRegistration(String recipient, String username, String contestTitle, String description, LocalDateTime startAt, LocalDateTime endAt, int problemCount, Long contestId) { log.warn("Email delivery is disabled; a contest registration email was not delivered."); }
+    @Override public void sendContestNotice(String recipient,String username,String title,LocalDateTime startAt,LocalDateTime endAt,Long id,String type){disabled(type);}
+    @Override public void sendCreatorOtp(String recipient,String username,String otp){disabled("creator verification OTP");}
+    @Override public void sendCreatorDecision(String recipient,String username,boolean approved,String reason){disabled("creator decision");}
+    @Override public void sendAssessmentInvitation(String recipient,String username,String title,String host,String organization,LocalDateTime startAt,LocalDateTime endAt,Long id){disabled("assessment invitation");}
+    @Override public void sendAssessmentNotice(String recipient,String username,String title,String host,String organization,String description,LocalDateTime startAt,LocalDateTime endAt,LocalDateTime registrationDeadline,int problemCount,boolean fullscreenRequired,boolean microphoneRequired,Long id,String type,String accessToken){disabled(type);}
+    @Override public void sendAssessmentAccessOtp(String recipient,String name,String assessmentTitle,String otp){disabled("assessment verification OTP");}
+    @Override public void sendAssessmentAccessInvitation(String recipient,String name,String title,String host,String organization,LocalDateTime startAt,LocalDateTime endAt,int problemCount,boolean fullscreen,boolean microphone,String accessUrl){disabled("assessment invitation");}
     private void disabled(String type) { log.warn("Email delivery is disabled; a {} email was not delivered.", type); }
 }

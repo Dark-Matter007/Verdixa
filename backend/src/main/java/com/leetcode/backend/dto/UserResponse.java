@@ -11,16 +11,18 @@ public class UserResponse {
     private String email;
     private Role role;
     private ThemePreference theme;
+    private String languagePreference;
 
     public UserResponse() {
     }
 
-    public UserResponse(Long id, String username, String email, Role role, ThemePreference theme) {
+    public UserResponse(Long id, String username, String email, Role role, ThemePreference theme, String languagePreference) {
         this.id = id;
         this.username = username;
         this.email = email;
         this.role = role;
         this.theme = theme;
+        this.languagePreference = languagePreference;
     }
 
     public static UserResponse fromUser(User user) {
@@ -29,7 +31,7 @@ public class UserResponse {
                 user.getUsername(),
                 user.getEmail(),
                 user.getRole(),
-                user.getTheme()
+                user.getTheme(), user.getLanguagePreference()
         );
     }
 
@@ -50,4 +52,5 @@ public class UserResponse {
     }
 
     public ThemePreference getTheme() { return theme; }
+    public String getLanguagePreference() { return languagePreference; }
 }

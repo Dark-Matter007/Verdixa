@@ -1,3 +1,4 @@
+import PracticeWorkspace, { WorkspaceLoading, WorkspaceUnavailable } from "../components/solver/PracticeWorkspace";
 import EditorialPanel from "../components/EditorialPanel";
 import SubmissionMilestone from "../components/SubmissionMilestone";
 import { useCallback, useContext, useEffect, useState } from "react";
@@ -312,6 +313,8 @@ function ProblemSolver() {
     return <Clock3 size={22} />;
   };
 
+  if (loading && !contestId && !contestWorkspace) return <WorkspaceLoading/>;
+
   if (loading) {
     return (
       <div className="solver-page">
@@ -321,6 +324,8 @@ function ProblemSolver() {
       </div>
     );
   }
+
+  if (!problem && !contestId && !contestWorkspace) return <WorkspaceUnavailable message={error} retry={fetchProblem} navigate={navigate}/>;
 
   if (error && !problem) {
     return (
@@ -347,6 +352,15 @@ function ProblemSolver() {
   const placeholderFor = (type) => ({String:'"hello"',int:"42",Integer:"42",long:"42",double:"3.14",boolean:"true","int[]":"[1,2,3]","long[]":"[1,2,3]","double[]":"[1.5,2.5]","String[]":'["a","b"]'}[type] || "JSON value");
   const formatRemaining = (seconds) => { if (seconds === null) return "--:--"; const hours = Math.floor(seconds / 3600); return `${hours ? `${String(hours).padStart(2, "0")}:` : ""}${String(Math.floor((seconds % 3600) / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`; };
   const leaveContest = () => navigate(`/contests/${contestId}`);
+
+  if (!contestId && !contestWorkspace) return <PracticeWorkspace key={id} {...{
+    problem, navigate, theme, language, changeLanguage, sourceCode, setSourceCode, setLanguageSources,
+    submitting, runCode, submitCode, resetCurrentLanguage, result, error, submissions,
+    bookmarked, toggleBookmark, personalLists, addToList, navigation,
+    activePanel, setActivePanel, hintData, pendingHint, setPendingHint, revealHint,
+    editorial, setEditorial, note, setNote, noteState, setNoteState, saveNote, deleteNote,
+    customInput, setCustomInput, customCases, setCustomCases,
+  }}/>;
 
   return (
     <div className={`solver-page ${editorExpanded ? "editor-expanded" : ""} ${contestWorkspace ? "contest-solver" : ""}`}>

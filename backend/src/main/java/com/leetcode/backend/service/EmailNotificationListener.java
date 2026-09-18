@@ -5,14 +5,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.scheduling.annotation.Async;
 
 /** Delivery happens only after a successful database commit and can never roll it back. */
 @Component
 public class EmailNotificationListener {
     private static final Logger log = LoggerFactory.getLogger(EmailNotificationListener.class);
     private final EmailService emailService;
+    private final NotificationDeliveryService deliveries;
 
-    public EmailNotificationListener(EmailService emailService) { this.emailService = emailService; }
+    public EmailNotificationListener(EmailService emailService, NotificationDeliveryService deliveries) { this.emailService = emailService; this.deliveries = deliveries; }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void verificationIssued(EmailNotificationEvents.OtpIssued event) {
@@ -58,6 +60,33 @@ public class EmailNotificationListener {
     public void contestRegistered(EmailNotificationEvents.ContestRegistered event) {
         attempt(() -> emailService.sendContestRegistration(event.email(), event.username(), event.title(), event.description(), event.startAt(), event.endAt(), event.problemCount(), event.contestId()), "contest registration");
     }
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async
+    public void contestCreated(EmailNotificationEvents.ContestCreated event) { deliveries.queueContestAnnouncement(event.contestId()); }
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async
+    public void creatorOtp(EmailNotificationEvents.CreatorOtpIssued event) { attempt(() -> emailService.sendCreatorOtp(event.email(),event.username(),event.otp()), "creator verification OTP"); }
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async
+    public void creatorDecision(EmailNotificationEvents.CreatorDecision event) { attempt(() -> emailService.sendCreatorDecision(event.email(),event.username(),event.approved(),event.reason()), "creator decision"); }
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async
+    public void assessmentPublished(EmailNotificationEvents.AssessmentPublished event) { deliveries.queueAssessmentPublished(event.assessmentId()); }
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async
+    public void assessmentInvitationsChanged(EmailNotificationEvents.AssessmentInvitationsChanged event) { deliveries.queueAssessmentInvitations(event.assessmentId()); }
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async
+    public void assessmentRegistered(EmailNotificationEvents.AssessmentRegistered event) { deliveries.queueAssessmentRegistration(event.assessmentId(), event.userId()); }
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async
+    public void assessmentUpdated(EmailNotificationEvents.AssessmentUpdated event) { deliveries.queueAssessmentUpdate(event.assessmentId()); }
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async
+    public void assessmentCancelled(EmailNotificationEvents.AssessmentCancelled event) { deliveries.queueAssessmentCancellation(event.assessmentId()); }
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Async
+    public void assessmentAccessInvitation(EmailNotificationEvents.AssessmentAccessInvitation event) { attempt(() -> emailService.sendAssessmentAccessInvitation(event.email(),event.name(),event.title(),event.host(),event.organization(),event.startAt(),event.endAt(),event.problemCount(),event.fullscreen(),event.microphone(),event.accessUrl()), "assessment invitation"); }
     private void attempt(Runnable send, String type) {
         try {
             send.run();

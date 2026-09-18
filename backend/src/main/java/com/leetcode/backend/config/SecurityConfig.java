@@ -95,7 +95,8 @@ public class SecurityConfig {
         configuration.setAllowedHeaders(
                 List.of(
                         "Authorization",
-                        "Content-Type"
+                        "Content-Type",
+                        "X-Assessment-Access"
                 )
         );
 
@@ -174,6 +175,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**"
                         ).permitAll()
+                        .requestMatchers("/api/assessment-access/**").permitAll()
+                        .requestMatchers("/api/assessment-sessions/**").permitAll()
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/assistant/public/chat").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/assistant/chat").hasAnyRole("USER", "ADMIN")
@@ -196,9 +199,14 @@ public class SecurityConfig {
                                 "/api/users/leaderboard/page"
                         ).hasAnyRole("USER", "ADMIN")
 
+                        // Guest-facing pages use the same bounded, cached translation endpoint.
+                        .requestMatchers(HttpMethod.GET, "/api/i18n/languages").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/i18n/translate-batch").permitAll()
+
                         .requestMatchers(
                                 HttpMethod.PUT,
                                 "/api/users/me/theme"
+                                ,"/api/users/me/language"
                         ).hasAnyRole("USER", "ADMIN")
 
                         // ==========================

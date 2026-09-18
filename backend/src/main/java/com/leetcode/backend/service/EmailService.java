@@ -17,4 +17,14 @@ public interface EmailService {
     void sendContestRegistration(String recipient, String username, String contestTitle,
                                  String description, LocalDateTime startAt, LocalDateTime endAt,
                                  int problemCount, Long contestId);
+    void sendContestNotice(String recipient, String username, String title, LocalDateTime startAt, LocalDateTime endAt, Long contestId, String type);
+    void sendCreatorOtp(String recipient, String username, String otp);
+    void sendCreatorDecision(String recipient, String username, boolean approved, String reason);
+    void sendAssessmentInvitation(String recipient, String username, String title, String host, String organization, LocalDateTime startAt, LocalDateTime endAt, Long assessmentId);
+    void sendAssessmentNotice(String recipient, String username, String title, String host, String organization,
+                              String description, LocalDateTime startAt, LocalDateTime endAt,
+                              LocalDateTime registrationDeadline, int problemCount, boolean fullscreenRequired,
+                              boolean microphoneRequired, Long assessmentId, String type, String accessToken);
+    void sendAssessmentAccessOtp(String recipient, String name, String assessmentTitle, String otp);
+    void sendAssessmentAccessInvitation(String recipient,String name,String title,String host,String organization,LocalDateTime startAt,LocalDateTime endAt,int problemCount,boolean fullscreen,boolean microphone,String accessUrl);
 }

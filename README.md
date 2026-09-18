@@ -59,6 +59,10 @@ Users authenticate with JWTs, browse the problem library, write a Java, C++, or 
 - Submission history, detail/replay, private notes, bookmarks, and personal problem lists.
 - Progressive locked/revealed hints, editorials, curated collections, learning paths, daily challenges, contests, leaderboard, and activity heatmap.
 - Private-contest registration with an access code, certificate milestone previews, and PDF downloads for earned certificates.
+- Searchable global language selection with 100+ provider-supported languages, persisted account preferences, translation caching, and English fallback.
+- Database-backed user activity analytics with a 365-day heatmap, streaks, difficulty and language distributions, and visibility-aware polling.
+- Assessment Studio for approved creators: public-link or private-email access, server-authorized OTP verification, external invitees, existing-problem selection, live analytics, and persisted leaderboards.
+- Focused assessment sessions with consent, fullscreen and microphone-presence checks, tab-switch enforcement, authenticated heartbeat expiry, and server-side session authority. Microphone audio is never recorded or uploaded.
 
 ### Admin workspace
 
@@ -66,6 +70,21 @@ Users authenticate with JWTs, browse the problem library, write a Java, C++, or 
 - Create, edit, activate/deactivate, and delete problems.
 - Test-case management, including hidden cases and FUNCTION signatures.
 - User and role management, contests, collections, learning paths, daily challenges, and editorials.
+- Platform analytics, Assessment Creator identity review, protected document preview, approval/rejection/revocation audit history, and database-idempotent contest announcement/reminder/live email delivery.
+
+## Multilingual and Assessment Configuration
+
+English is the canonical fallback. Verdixa translates rendered page text and accessibility labels, including content loaded after navigation, while explicitly excluding editors, source code, test data, URLs, email addresses, IDs, and technical identifiers. Common Hindi and Telugu navigation/authentication strings are bundled; other uncached strings use server-side **DeepL API Free** at `https://api-free.deepl.com/v2/translate`. Configure `DEEPL_ENABLED`, `DEEPL_API_KEY`, and the configurable `DEEPL_API_URL` (`https://api.deepl.com` for DeepL API Pro) only in backend deployment secrets. No translation credential is sent to React. Translation failures return the original English text.
+
+Assessment Creator applications accept organization evidence (for example, incorporation, business-license, tax-registration, official-letter, or accreditation evidence) and, where needed, Passport or redacted Aadhaar evidence for the accountable applicant. Student and employee IDs are not accepted. Rejected and revoked applicants can revise their details and submit a fresh application. Uploads accept JPEG, PNG, and PDF files up to 8 MB only when the declared MIME type matches the detected magic bytes. They are AES-GCM encrypted under random `.bin` names outside public/static directories and are exposed only through the ADMIN-authorized API. Production must provide a Base64-encoded 16, 24, or 32-byte `VERIFICATION_STORAGE_KEY` and a private `VERIFICATION_STORAGE_PATH`. The key is never logged. **Rotating or replacing this key without first decrypting and re-encrypting the existing documents makes every document encrypted with the old key permanently unreadable.** Back up and perform an explicit key-migration procedure before rotation. The configured retention window is `VERIFICATION_DOCUMENT_RETENTION_DAYS` (30 by default).
+
+### Assessment participant access
+
+Assessments use **Invitation/Public Link → Participant Form → Email OTP → Waiting Room → Proctoring → Assessment**. Assessment registration and its historical deadline are not an access gate. OTPs are generated with `SecureRandom`, BCrypt-hashed, expire after ten minutes, allow five attempts, are single-use, and have a 60-second resend cooldown. Private invitations use per-recipient opaque links hashed at rest; OTP request, resend, failed verification, and successful verification are recorded in an assessment audit trail. Configure the existing SMTP settings (`MAIL_ENABLED`, `MAIL_HOST`, `MAIL_FROM`, and credentials) for invitation and verification delivery; never put SMTP secrets in source control.
+
+Mail links and the shared Verdixa logo banner use `APP_PUBLIC_URL`; every transactional email uses the same responsive light/dark-aware template and includes a plain-text fallback. Contest scheduler behavior is controlled with `CONTEST_REMINDER_MINUTES` and `NOTIFICATION_SCHEDULER_MS`; verified assessment participants receive idempotent reminders configured by `ASSESSMENT_REMINDER_OFFSET_MINUTES` (default `1440,30`). Assessment heartbeat expiry uses `ASSESSMENT_HEARTBEAT_TIMEOUT_SECONDS`; the browser sends an authenticated heartbeat every 10 seconds. Browser proctoring detects specified browser events but cannot make an assessment cheat-proof, cannot close a browser tab, and cannot guarantee delivery of a final page-exit request.
+
+New manual test routes: `/analytics`, `/assessments`, `/assessments/studio`, `/assessment-creator/apply`, and `/admin/assessment-creators`. A creator can build an assessment at `/assessments/studio/create`; participants enter through `/assessment/:id/access` and continue to preflight only after email verification.
 
 ## Judge Architecture
 
@@ -336,6 +355,9 @@ The names below are retained for compatibility with the existing configuration; 
 | `GEMINI_ENABLED` | Enables permitted Gemini-assisted Verdixa responses | `false` |
 | `GEMINI_API_KEY` | Server-only Gemini API key | unset |
 | `GEMINI_MODEL` | Gemini model used when generation is needed | `gemini-2.5-flash` |
+| `DEEPL_ENABLED` | Enables server-side DeepL translation | `false` |
+| `DEEPL_API_KEY` | Server-only DeepL API key; never expose as a Vite variable | unset |
+| `DEEPL_API_URL` | DeepL API base URL | `https://api-free.deepl.com` |
 
 ### Email delivery and verification
 

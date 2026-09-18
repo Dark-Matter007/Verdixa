@@ -21,6 +21,12 @@ public class AdminController {
     private final UserRepository userRepository;
     private final ProblemRepository problemRepository;
     private final SubmissionRepository submissionRepository;
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private com.leetcode.backend.repository.ContestRepository contestRepository;
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private com.leetcode.backend.repository.ContestRegistrationRepository contestRegistrationRepository;
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private com.leetcode.backend.repository.UserCertificateRepository certificateRepository;
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private com.leetcode.backend.repository.AssessmentCreatorApplicationRepository creatorApplicationRepository;
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private com.leetcode.backend.repository.AssessmentRepository assessmentRepository;
+    @org.springframework.beans.factory.annotation.Autowired(required=false) private com.leetcode.backend.repository.AssessmentRegistrationRepository assessmentRegistrationRepository;
 
     public AdminController(UserRepository userRepository, ProblemRepository problemRepository,
                            SubmissionRepository submissionRepository) {
@@ -55,6 +61,7 @@ public class AdminController {
         LocalDate today = LocalDate.now();
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("totalUsers", userRepository.count());
+        result.put("verifiedUsers", userRepository.countByEmailVerifiedTrue());
         // Calendar windows include today, so a 30-day window starts 29 days ago.
         result.put("activeUsers", all.stream().filter(s -> !s.getSubmittedAt().toLocalDate().isBefore(today.minusDays(29))).map(s -> s.getUser().getId()).distinct().count());
         result.put("publishedProblems", problemRepository.countByActiveTrue());
@@ -65,6 +72,15 @@ public class AdminController {
         result.put("submissionsLast30Days", all.stream().filter(s -> !s.getSubmittedAt().toLocalDate().isBefore(today.minusDays(29))).count());
         result.put("verdictDistribution", all.stream().collect(java.util.stream.Collectors.groupingBy(s -> s.getStatus(), java.util.stream.Collectors.counting())));
         result.put("languageDistribution", all.stream().collect(java.util.stream.Collectors.groupingBy(s -> s.getLanguage(), java.util.stream.Collectors.counting())));
+        result.put("contests", contestRepository == null ? 0 : contestRepository.count());
+        result.put("contestRegistrations", contestRegistrationRepository == null ? 0 : contestRegistrationRepository.count());
+        result.put("certificates", certificateRepository == null ? 0 : certificateRepository.count());
+        result.put("pendingCreatorRequests", creatorApplicationRepository == null ? 0 : creatorApplicationRepository.findByStatusOrderBySubmittedAtAsc(com.leetcode.backend.model.AssessmentEnums.CreatorStatus.PENDING_ADMIN_REVIEW).size());
+        result.put("approvedAssessmentCreators", creatorApplicationRepository == null ? 0 : creatorApplicationRepository.findByStatusOrderBySubmittedAtAsc(com.leetcode.backend.model.AssessmentEnums.CreatorStatus.APPROVED).size());
+        result.put("publicAssessments", assessmentRepository == null ? 0 : assessmentRepository.findAll().stream().filter(a -> a.getVisibility() == com.leetcode.backend.model.AssessmentEnums.Visibility.PUBLIC).count());
+        result.put("privateAssessments", assessmentRepository == null ? 0 : assessmentRepository.findAll().stream().filter(a -> a.getVisibility() == com.leetcode.backend.model.AssessmentEnums.Visibility.PRIVATE).count());
+        result.put("assessmentParticipants", assessmentRegistrationRepository == null ? 0 : assessmentRegistrationRepository.count());
+        result.put("lastUpdated", java.time.Instant.now());
         return ResponseEntity.ok(result);
     }
 

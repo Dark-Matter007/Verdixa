@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, CalendarDays, ClipboardList, FolderKanban, LogOut, Swords, Users } from "lucide-react";
+import { BarChart3, BookOpen, CalendarDays, ClipboardList, FolderKanban, LogOut, ShieldCheck, Swords, Users } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import BrandLogo from "./BrandLogo";
 
@@ -10,6 +10,7 @@ const links = [
   ["/admin/collections", "Collections", FolderKanban],
   ["/admin/learning-paths", "Learning paths", ClipboardList],
   ["/admin/daily-challenges", "Daily challenges", CalendarDays],
+  ["/admin/assessment-creators", "Creator verification", ShieldCheck],
 ];
 
 /** Shared enterprise navigation for every administration surface. */

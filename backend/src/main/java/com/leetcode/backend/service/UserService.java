@@ -103,6 +103,13 @@ public class UserService {
         return UserResponse.fromUser(userRepository.save(user));
     }
 
+    @Transactional
+    public UserResponse updateLanguage(String username, String language) {
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
+        user.setLanguagePreference(language);
+        return UserResponse.fromUser(userRepository.save(user));
+    }
+
     @Transactional(readOnly = true)
     public UserProgressResponse getProgressForUsername(String username) {
 

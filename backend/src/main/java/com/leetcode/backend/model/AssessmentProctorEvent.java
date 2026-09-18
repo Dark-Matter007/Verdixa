@@ -1,0 +1,5 @@
+package com.leetcode.backend.model;
+import jakarta.persistence.*; import java.time.LocalDateTime;
+@Entity @Table(name="assessment_proctor_events",indexes=@Index(name="idx_proctor_event_session",columnList="session_id,occurred_at")) public class AssessmentProctorEvent {
+ @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id; @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="session_id",nullable=false) private AssessmentSession session; @Enumerated(EnumType.STRING) @Column(nullable=false,length=40) private AssessmentEnums.ProctorEventType type; @Column(length=500) private String metadata; @Column(name="occurred_at",nullable=false) private LocalDateTime occurredAt; @PrePersist void create(){occurredAt=LocalDateTime.now();} public AssessmentEnums.ProctorEventType getType(){return type;} public void setType(AssessmentEnums.ProctorEventType v){type=v;} public void setSession(AssessmentSession v){session=v;} public String getMetadata(){return metadata;} public void setMetadata(String v){metadata=v;}
+}

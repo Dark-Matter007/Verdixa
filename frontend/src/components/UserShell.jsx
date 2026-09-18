@@ -1,4 +1,4 @@
-import { BookOpen, CalendarDays, History, LogOut, Map, Swords, Trophy, UserRound } from "lucide-react";
+import { BarChart3, BookOpen, CalendarDays, ClipboardCheck, History, LogOut, Map, Swords, Trophy, UserRound } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import BrandLogo from "./BrandLogo";
 import Avatar from "./Avatar";
@@ -7,9 +7,10 @@ import UserAccountMenu from "./UserAccountMenu";
 const links = [
   ["/problems", "Practice", BookOpen], ["/contests", "Compete", Swords], ["/paths", "Paths", Map],
   ["/daily", "Daily", CalendarDays], ["/history", "Activity", History], ["/leaderboard", "Ranks", Trophy], ["/profile", "Profile", UserRound],
+  ["/assessments", "Assessments", ClipboardCheck], ["/analytics", "Analytics", BarChart3],
 ];
 
-export default function UserShell({ children, context }) {
+export default function UserShell({ children, context, headerless = false }) {
   const navigate = useNavigate();
   const username = localStorage.getItem("algosphere_username") || "User";
   const logout = () => {
@@ -25,6 +26,6 @@ export default function UserShell({ children, context }) {
       <div className="vx-user-sidebar-footer"><div><Avatar name={username}/><strong>{username}</strong></div></div>
       <button className="sidebar-logout" onClick={logout}><LogOut size={17} aria-hidden="true"/>Sign out</button>
     </aside>
-    <main className="dashboard-main vx-main"><header className="vx-workspace-header"><span>{context || "Workspace"}</span><UserAccountMenu /></header><NavLink className="sr-only" to="/dashboard">Back to Problems</NavLink>{children}</main>
+    <main className="dashboard-main vx-main">{!headerless && <header className="vx-workspace-header"><span>{context || "Workspace"}</span><UserAccountMenu /></header>}<NavLink className="sr-only" to="/dashboard">Back to Problems</NavLink>{children}</main>
   </div>;
 }

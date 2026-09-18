@@ -42,6 +42,9 @@ services:
       GEMINI_ENABLED: ${GEMINI_ENABLED:-false}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      DEEPL_ENABLED: ${DEEPL_ENABLED:-false}
+      DEEPL_API_KEY: ${DEEPL_API_KEY:-}
+      DEEPL_API_URL: ${DEEPL_API_URL:-https://api-free.deepl.com}
       ALGOSPHERE_CPP_COMMAND: g++
       ALGOSPHERE_RUNTIME_PATH: ""
       ALGOSPHERE_PYTHON_COMMAND: python3

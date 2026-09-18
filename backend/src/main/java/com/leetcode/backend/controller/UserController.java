@@ -4,6 +4,7 @@ import com.leetcode.backend.dto.LeaderboardEntryResponse;
 import com.leetcode.backend.dto.UserProgressResponse;
 import com.leetcode.backend.dto.UserResponse;
 import com.leetcode.backend.dto.ThemePreferenceRequest;
+import com.leetcode.backend.dto.LanguagePreferenceRequest;
 import com.leetcode.backend.model.Role;
 import com.leetcode.backend.service.UserService;
 
@@ -33,6 +34,11 @@ public class UserController {
     public ResponseEntity<UserResponse> updateTheme(@jakarta.validation.Valid @RequestBody ThemePreferenceRequest request,
             Authentication authentication) {
         return ResponseEntity.ok(userService.updateTheme(authentication.getName(), request.theme()));
+    }
+
+    @PutMapping("/me/language")
+    public ResponseEntity<UserResponse> updateLanguage(@jakarta.validation.Valid @RequestBody LanguagePreferenceRequest request, Authentication authentication) {
+        return ResponseEntity.ok(userService.updateLanguage(authentication.getName(), request.language()));
     }
 
     @GetMapping("/me/progress")

@@ -9,11 +9,22 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import com.leetcode.backend.service.EmailNotVerifiedException;
 import com.leetcode.backend.service.OtpVerificationException;
 import com.leetcode.backend.service.ProfileVerificationException;
+import org.hibernate.LazyInitializationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    private static final Logger log = LoggerFactory.getLogger(ApiExceptionHandler.class);
+
+    @ExceptionHandler(LazyInitializationException.class)
+    public ResponseEntity<Map<String, String>> detachedPersistenceState(LazyInitializationException exception) {
+        log.error("Detached persistence relation reached the API boundary", exception);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("message", "The assessment session could not be initialized. Please try again."));
+    }
     @ExceptionHandler(EmailNotVerifiedException.class)
     public ResponseEntity<Map<String, String>> emailNotVerified(EmailNotVerifiedException exception) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("code", "EMAIL_VERIFICATION_REQUIRED", "message", exception.getMessage()));

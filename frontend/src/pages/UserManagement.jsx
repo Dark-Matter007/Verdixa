@@ -6,13 +6,40 @@ import {
   Shield,
   User,
   Users,
-  ChevronDown,
 } from "lucide-react";
 import api from "../services/api";
 import Pagination from "../components/Pagination";
 import AdminShell from "../components/AdminShell";
 import Avatar from "../components/Avatar";
 import { EmptyState, LoadingState } from "../components/PageState";
+
+function RoleSwitcher({ role, disabled, onChange }) {
+  const options = [
+    { value: "USER", label: "User", Icon: User },
+    { value: "ADMIN", label: "Admin", Icon: Shield },
+  ];
+
+  return <div className="role-switcher" aria-label="Assign user role">
+    <span className="role-switcher-label">Access role</span>
+    <div className="role-switcher-options" role="radiogroup" aria-label="User role">
+      {options.map(({ value, label, Icon }) => {
+        const selected = role === value;
+        return <button
+          key={value}
+          type="button"
+          role="radio"
+          aria-checked={selected}
+          className={selected ? "active" : ""}
+          disabled={disabled || selected}
+          onClick={() => onChange(value)}
+        >
+          <Icon size={15} aria-hidden="true" />
+          <span>{label}</span>
+        </button>;
+      })}
+    </div>
+  </div>;
+}
 
 function UserManagement() {
   const navigate = useNavigate();
@@ -106,7 +133,7 @@ function UserManagement() {
   ).length;
 
   return (
-    <AdminShell title="User Management" description="Review identities, account roles, and user-level performance records." actions={
+    <AdminShell eyebrow="Identity control" title="User registry" description="Review identities, account roles, and user-level performance records." actions={
           <button
             className="primary-button"
             onClick={loadUsers}
@@ -122,9 +149,9 @@ function UserManagement() {
 
         {/* STAT CARDS */}
 
-        <section className="stats-grid">
+        <section className="stats-grid vx-user-registry-metrics" aria-label="User registry totals">
 
-          <div className="stat-card">
+          <div className="stat-card vx-user-registry-metric">
 
             <div className="stat-icon">
               <Users size={22} />
@@ -137,7 +164,7 @@ function UserManagement() {
 
           </div>
 
-          <div className="stat-card">
+          <div className="stat-card vx-user-registry-metric">
 
             <div className="stat-icon">
               <User size={22} />
@@ -150,7 +177,7 @@ function UserManagement() {
 
           </div>
 
-          <div className="stat-card">
+          <div className="stat-card vx-user-registry-metric">
 
             <div className="stat-icon">
               <Shield size={22} />
@@ -167,7 +194,7 @@ function UserManagement() {
 
         {/* USER SECTION */}
 
-        <section className="dashboard-section">
+        <section className="dashboard-section vx-user-registry">
 
           <div className="search-container">
 
@@ -203,7 +230,7 @@ function UserManagement() {
 
           ) : (
 
-            <div className="problem-table">
+            <div className="problem-table user-management-table">
 
               {/* TABLE HEADER */}
 
@@ -248,13 +275,14 @@ function UserManagement() {
 
                   {/* EMAIL */}
 
-                  <span className="user-email">
+                  <span className="user-email" data-label="Email">
                     {user.email}
                   </span>
 
                   {/* ROLE */}
 
                   <span
+                    data-label="Current role"
                     className={
                       user.role === "ADMIN"
                         ? "role-badge admin"
@@ -274,39 +302,9 @@ function UserManagement() {
 
                   {/* ACTION */}
 
-                  <div className="role-action">
-
-                    <button onClick={() => navigate(`/admin/users/${user.id}`)}>Analytics & Certificates</button>
-
-                    <div className="role-select-wrapper">
-
-                      <select
-                        value={user.role}
-                        disabled={
-                          updatingId === user.id
-                        }
-                        onChange={(e) =>
-                          updateRole(
-                            user.id,
-                            e.target.value
-                          )
-                        }
-                      >
-
-                        <option value="USER">
-                          USER
-                        </option>
-
-                        <option value="ADMIN">
-                          ADMIN
-                        </option>
-
-                      </select>
-
-                      <ChevronDown size={15} />
-
-                    </div>
-
+                  <div className="role-action" data-label="Access controls">
+                    <RoleSwitcher role={user.role} disabled={updatingId === user.id} onChange={(role) => updateRole(user.id, role)} />
+                    <button className="role-analytics-link" onClick={() => navigate(`/admin/users/${user.id}`)}>Analytics &amp; Certificates</button>
                   </div>
 
                 </div>

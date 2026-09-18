@@ -3,6 +3,7 @@ import { ChevronDown, LayoutDashboard, LogOut, ShieldCheck, UserRound } from "lu
 import { useNavigate } from "react-router-dom";
 import Avatar from "./Avatar";
 import ThemeToggle from "./ThemeToggle";
+import LanguageSelector from "./LanguageSelector";
 
 /** Compact shared account control for authenticated workspaces. */
 export default function UserAccountMenu() {
@@ -23,9 +24,19 @@ export default function UserAccountMenu() {
     navigate("/login");
   };
   const go = (path) => { setOpen(false); navigate(path); };
-  return <div className="vx-account-control" ref={root}>
+  return <div className="vx-account-control" ref={root} onKeyDown={(event) => {
+    if (event.key === "Escape" && open) { event.preventDefault(); event.stopPropagation(); setOpen(false); root.current?.querySelector(".vx-account-trigger")?.focus(); }
+    if (open && ["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+      event.preventDefault();
+      const items = [...root.current.querySelectorAll('[role="menuitem"]')];
+      const index = items.indexOf(document.activeElement);
+      const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : (index + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length;
+      items[next]?.focus();
+    }
+  }}>
+    <LanguageSelector />
     <ThemeToggle />
-    <button className="vx-account-trigger" type="button" aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen((value) => !value)}>
+    <button className="vx-account-trigger" type="button" aria-label="Account menu" aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen((value) => !value)}>
       <Avatar name={username} /><span>{username}</span><ChevronDown size={14} aria-hidden="true" />
     </button>
     {open && <div className="vx-account-menu" role="menu" aria-label="Account menu">

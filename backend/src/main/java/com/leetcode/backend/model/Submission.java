@@ -36,6 +36,11 @@ public class Submission {
     @JoinColumn(name = "contest_problem_id")
     private ContestProblem contestProblem;
 
+    /** Optional assessment context; the existing judge remains the single execution path. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assessment_session_id")
+    private AssessmentSession assessmentSession;
+
     @Column(name = "source_code", nullable = false, columnDefinition = "TEXT")
     private String sourceCode;
 
@@ -97,6 +102,8 @@ public class Submission {
     public void setContest(Contest contest) { this.contest = contest; }
     public ContestProblem getContestProblem() { return contestProblem; }
     public void setContestProblem(ContestProblem contestProblem) { this.contestProblem = contestProblem; }
+    public AssessmentSession getAssessmentSession() { return assessmentSession; }
+    public void setAssessmentSession(AssessmentSession value) { assessmentSession = value; }
 
     public String getSourceCode() {
         return sourceCode;
