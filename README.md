@@ -35,6 +35,8 @@ The frontend uses a focused Verdixa visual system with a clean light workspace a
 - Refined the administrative problem catalogue with accessible table semantics, count feedback, compact metadata, and icon-only actions with descriptive labels.
 - Added access-code entry when joining private contests and made contest-problem creation sequential to preserve the selected display order.
 - Moved certificate previews into a document-level portal so the modal is reliably above surrounding page layout.
+- Rebuilt the assessment experience as a dedicated certification workspace: an access-aware preflight, server-synchronized timer, compact problem navigator, independent statement/editor panes, Monaco execution console, professional final-submission confirmation, and clear submitted/terminated outcomes.
+- Hardened assessment startup around an explicit `PRECHECK → READY → STARTING → ARMING → ACTIVE` lifecycle. Fullscreen, visibility, microphone, and strict screen-share enforcement arm only after the backend has activated the session, the workspace is mounted, the required streams are live, and the first heartbeat succeeds.
 
 ## Overview
 
@@ -62,7 +64,7 @@ Users authenticate with JWTs, browse the problem library, write a Java, C++, or 
 - Searchable global language selection with 100+ provider-supported languages, persisted account preferences, translation caching, and English fallback.
 - Database-backed user activity analytics with a 365-day heatmap, streaks, difficulty and language distributions, and visibility-aware polling.
 - Assessment Studio for approved creators: public-link or private-email access, server-authorized OTP verification, external invitees, existing-problem selection, live analytics, and persisted leaderboards.
-- Focused assessment sessions with consent, fullscreen and microphone-presence checks, tab-switch enforcement, authenticated heartbeat expiry, and server-side session authority. Microphone audio is never recorded or uploaded.
+- Focused assessment sessions with consent, fullscreen and microphone-presence checks, tab-switch enforcement, strict screen-sharing where configured, authenticated heartbeat expiry, and server-side session authority. Microphone audio is never recorded or uploaded.
 
 ### Admin workspace
 
@@ -83,6 +85,23 @@ Assessment Creator applications accept organization evidence (for example, incor
 Assessments use **Invitation/Public Link → Participant Form → Email OTP → Waiting Room → Proctoring → Assessment**. Assessment registration and its historical deadline are not an access gate. OTPs are generated with `SecureRandom`, BCrypt-hashed, expire after ten minutes, allow five attempts, are single-use, and have a 60-second resend cooldown. Private invitations use per-recipient opaque links hashed at rest; OTP request, resend, failed verification, and successful verification are recorded in an assessment audit trail. Configure the existing SMTP settings (`MAIL_ENABLED`, `MAIL_HOST`, `MAIL_FROM`, and credentials) for invitation and verification delivery; never put SMTP secrets in source control.
 
 Mail links and the shared Verdixa logo banner use `APP_PUBLIC_URL`; every transactional email uses the same responsive light/dark-aware template and includes a plain-text fallback. Contest scheduler behavior is controlled with `CONTEST_REMINDER_MINUTES` and `NOTIFICATION_SCHEDULER_MS`; verified assessment participants receive idempotent reminders configured by `ASSESSMENT_REMINDER_OFFSET_MINUTES` (default `1440,30`). Assessment heartbeat expiry uses `ASSESSMENT_HEARTBEAT_TIMEOUT_SECONDS`; the browser sends an authenticated heartbeat every 10 seconds. Browser proctoring detects specified browser events but cannot make an assessment cheat-proof, cannot close a browser tab, and cannot guarantee delivery of a final page-exit request.
+
+### Secure assessment workspace
+
+The assessment client is intentionally separate from the normal practice workspace. It removes nonessential navigation, the floating assistant, and active language switching so the exam surface stays controlled and stable. The dedicated top bar shows the assessment identity, backend-synchronized remaining time, solved progress, compact proctor status, and final-submit action. The main desktop layout gives the Monaco editor the majority of the screen, with a compact problem rail and independently scrollable statement pane.
+
+```text
+Preflight checks
+  → Backend session becomes ACTIVE and initializes lastHeartbeatAt
+  → Exam workspace mounts with required fullscreen/media state
+  → First authenticated heartbeat succeeds
+  → Backend arms proctoring
+  → Strict browser-event enforcement begins
+```
+
+This ordering prevents startup-only browser events—permission prompts, fullscreen transitions, route handoff, React development remounts, and initial heartbeat scheduling—from being interpreted as participant violations. Once armed, the backend remains authoritative: the session owner, assessment window, selected assessment item, current status, and final submission are all validated server-side. The first valid termination reason is retained idempotently for participant support and host auditing.
+
+The workspace supports warm-white light mode and near-black/charcoal dark mode with the same measured crimson identity accents. On small screens, Verdixa shows a secure-workspace requirement instead of compressing a proctored Monaco editor into an unsafe mobile layout.
 
 New manual test routes: `/analytics`, `/assessments`, `/assessments/studio`, `/assessment-creator/apply`, and `/admin/assessment-creators`. A creator can build an assessment at `/assessments/studio/create`; participants enter through `/assessment/:id/access` and continue to preflight only after email verification.
 
