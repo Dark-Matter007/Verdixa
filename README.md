@@ -66,6 +66,36 @@ Users authenticate with JWTs, browse the problem library, write a Java, C++, or 
 - Assessment Studio for approved creators: public-link or private-email access, server-authorized OTP verification, external invitees, existing-problem selection, live analytics, and persisted leaderboards.
 - Focused assessment sessions with consent, fullscreen and microphone-presence checks, tab-switch enforcement, strict screen-sharing where configured, authenticated heartbeat expiry, and server-side session authority. Microphone audio is never recorded or uploaded.
 
+### Assessment, access, and proctoring
+
+- **Assessment Studio** for approved creators, including draft, publish, update, cancellation, invitee search, participant management, problem ordering, coding problems, and MCQ questions.
+- **Public and private assessment access**: public-link participant registration or private, recipient-specific invitations; both flows use server-verified OTP access instead of treating a normal app login as an assessment credential.
+- **Guest-safe participation**: verified external participants can receive purpose-limited access without exposing creator/admin privileges or bypassing server ownership checks.
+- **Explicit session lifecycle**: `PRECHECK`, `READY`, `STARTING`, `ARMING`, `ACTIVE`, `SUBMITTING`, `SUBMITTED`, `TERMINATED`, and `EXPIRED` separate startup synchronization from strict enforcement.
+- **Layered proctoring**: fullscreen presence, document visibility, microphone availability, and strict screen sharing are monitored only after the session is backend-active and armed. The first valid violation is persisted idempotently with its reason.
+- **Heartbeat authority**: server-side `lastHeartbeatAt` is initialized at session start; browser heartbeats keep active sessions alive while stale armed sessions can expire safely.
+- **Assessment analytics**: creators can review participant state, session outcomes, solved/attempted progress, proctor events, and persisted leaderboards without exposing hidden test material.
+- **Dedicated assessment client**: a controlled desktop-first workspace with a compact problem navigator, server-synchronized timer, Monaco editor, allowed run output, per-problem submission, and final assessment submission.
+
+### Advanced practice workspace
+
+- Resizable problem/editor and editor/console splits, plus a resettable layout for longer practice sessions.
+- Focus mode, collapsible statement pane, keyboard-friendly controls, and responsive Problem / Code / Tests tabs for constrained tablet widths.
+- Per-language source retention while switching Java, C++, and Python, with Monaco themes aligned to Verdixa light and dark modes.
+- Personal notes, bookmarks, ordered problem lists, submission replay/history, progressive hints, editorials, collections, learning paths, daily challenges, and contest workflows.
+
+### Language, notifications, and communication
+
+- Interface translation for 100+ supported languages using bundled language strings, server-side DeepL integration, database caching, and English fallback; source code, editor content, test data, IDs, and URLs are intentionally excluded.
+- Assessment mode freezes language-changing UI to avoid DOM mutation during a monitored session; normal product translation remains available outside active assessments.
+- Idempotent email delivery for assessment invitations, public announcements, registration confirmation, configurable reminders, live notifications, updates, and cancellation notices.
+- Role-aware Verdixa Assistant experiences for public visitors, participants, and administrators, with deterministic security/permission checks ahead of natural-language handling.
+
+### Creator integrity controls
+
+- Assessment Creator application workflow with reviewable organization evidence, email verification, admin approval/rejection/revocation decisions, and audited decision history.
+- Uploaded creator documents are type-validated, AES-GCM encrypted outside static directories, and retrieved only through ADMIN-authorized endpoints.
+
 ### Admin workspace
 
 - Platform statistics plus safe user and problem analytics dashboards.
